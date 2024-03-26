@@ -1,0 +1,7 @@
+{
+  "appTitle": "simple_water_tracker",
+  "@appTitle": {
+    "description": "Simple home plant water tracker app. I've made this for educational purpose."
+  },
+  "@@locale": "en"
+}
