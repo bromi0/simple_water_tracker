@@ -73,7 +73,7 @@ class MyApp extends StatelessWidget {
                     return const SampleItemDetailsView();
                   case PlantListView.routeName:
                   default:
-                    return PlantListView();
+                    return const PlantListView();
                 }
               },
             );

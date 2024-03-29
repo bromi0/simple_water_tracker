@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:simple_water_tracker/src/sample_feature/plant_data.dart';
+
+class PlantTile extends StatelessWidget {
+  const PlantTile({
+    super.key,
+    required this.plant,
+  });
+
+  final PlantData plant;
+
+  @override
+  Widget build(BuildContext context) {
+    final PlantStore store = Provider.of<PlantStore>(context);
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      child: InkWell(
+        splashColor: plant.color.withAlpha(30),
+        onTap: () {
+          // Navigate to the details page or handle tap event
+          // Navigate to the details page. If the user leaves and returns to
+          // the app after it has been killed while running in the
+          // background, the navigation stack is restored.
+          // Navigator.restorablePushNamed(
+          //   context,
+          //   SampleItemDetailsView.routeName,
+          // );
+        },
+        child: Column(children: [
+          Text(plant.name),
+          Container(
+            width: double.infinity,
+            height: 100,
+            color: plant.color,
+          ),
+          Text('Water Level: ${plant.waterLevel}%'),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Cancel watering
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.undo),
+                ),
+                // Edit plant
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.edit),
+                ),
+                // Delete plant
+                IconButton(
+                    onPressed: () {
+                      store.remove(plant);
+                    },
+                    icon: const Icon(Icons.delete_forever)),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}

@@ -14,6 +14,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  hive: ^2.2.3
+  provider: ^6.1.2
   uuid: ^4.3.0
 
 dev_dependencies:

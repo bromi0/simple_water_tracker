@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../settings/settings_view.dart';
 import 'plant_data.dart';
@@ -6,21 +7,11 @@ import 'plant_list.dart';
 
 /// Displays a list of SampleItems.
 class PlantListView extends StatelessWidget {
-  PlantListView({
+  const PlantListView({
     super.key,
   });
 
   static const routeName = '/';
-
-  final plantData = [
-    PlantData(name: 'Cactus', waterLevel: 80, color: Colors.green.shade400),
-    PlantData(name: 'Sunflower', waterLevel: 50, color: Colors.yellow),
-    PlantData(name: 'Rose', waterLevel: 20, color: Colors.red),
-    PlantData(name: 'Cactus', waterLevel: 80, color: Colors.green.shade400),
-    PlantData(name: 'Sunflower', waterLevel: 50, color: Colors.yellow),
-    PlantData(name: 'Rose', waterLevel: 20, color: Colors.red),
-    // Add more plant data here
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +30,8 @@ class PlantListView extends StatelessWidget {
             ),
           ],
         ),
-        body: PlantList(items: plantData),
+        body: ChangeNotifierProvider(
+            create: (context) => PlantStore(), child: const PlantList()),
         bottomNavigationBar: NavigationBar(destinations: const <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Icons.room),
