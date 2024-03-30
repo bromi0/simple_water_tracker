@@ -26,6 +26,7 @@ class PlantTile extends StatelessWidget {
           //   context,
           //   SampleItemDetailsView.routeName,
           // );
+          store.waterPlant(plant);
         },
         child: Column(children: [
           Text(plant.name),
@@ -43,7 +44,9 @@ class PlantTile extends StatelessWidget {
               children: [
                 // Cancel watering
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    store.undoWaterPlant(plant);                    
+                  },
                   icon: const Icon(Icons.undo),
                 ),
                 // Edit plant
