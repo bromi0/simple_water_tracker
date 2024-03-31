@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -57,13 +58,25 @@ class PlantTile extends StatelessWidget {
                 // Cancel watering
                 IconButton(
                   onPressed: () {
-                    store.undoWaterPlant(plant);                    
+                    store.undoWaterPlant(plant);
                   },
                   icon: const Icon(Icons.undo),
                 ),
                 // Edit plant
                 IconButton(
-                  onPressed: () {                    
+                  onPressed: () {
+                    showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (context) {
+                          return SingleChildScrollView(
+                              child: Container(
+                                  padding: EdgeInsets.only(
+                                      bottom: MediaQuery.of(context)
+                                          .viewInsets
+                                          .bottom),
+                                  child: PlantEditor(plant: plant)));
+                        });
                   },
                   icon: const Icon(Icons.edit),
                 ),
@@ -77,6 +90,93 @@ class PlantTile extends StatelessWidget {
             ),
           ),
         ]),
+      ),
+    );
+  }
+}
+
+class PlantEditor extends StatefulWidget {
+  const PlantEditor({super.key, required this.plant});
+  final PlantData plant;
+
+  @override
+  _PlantEditorState createState() => _PlantEditorState();
+}
+
+class _PlantEditorState extends State<PlantEditor> {
+  late String _name;
+  late int _wateringInterval;
+  final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _name = widget.plant.name;
+    _wateringInterval = widget.plant.wateringInterval;
+    _nameController.text = _name;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _nameController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _nameController.text.length),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _decrementInterval() {
+    setState(() {
+      _wateringInterval = max(_wateringInterval - 1, 1);
+    });
+  }
+
+  void _incrementInterval() {
+    setState(() {
+      _wateringInterval++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final PlantService store = Provider.of<PlantService>(context);
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            decoration: const InputDecoration(labelText: 'Plant Name'),
+            onChanged: (value) => setState(() => _name = value),
+            controller: _nameController,
+            autofocus: true, // Set autofocus to true
+          ),
+          const SizedBox(height: 16.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: _decrementInterval,
+                icon: const Icon(Icons.remove),
+              ),
+              Text('Watering Interval: $_wateringInterval days'),
+              IconButton(
+                onPressed: _incrementInterval,
+                icon: const Icon(Icons.add),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16.0),
+          ElevatedButton(
+            onPressed: () {
+              store.updatePlant(widget.plant, _name, _wateringInterval);
+              Navigator.of(context).pop();
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

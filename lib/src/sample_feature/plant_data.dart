@@ -22,7 +22,7 @@ class PlantData {
 
   final String id; // UUID
   @JsonKey(defaultValue: "Unknown")
-  final String name;
+  String name;
   @JsonKey(defaultValue: 100)
   int waterLevel; // Assuming a value between 0-100
   @JsonKey(includeToJson: false)

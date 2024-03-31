@@ -43,6 +43,13 @@ class PlantService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updatePlant(PlantData plant, String name, int wateringInterval) {
+    plant.name = name;
+    plant.wateringInterval = wateringInterval;
+    _savePlantData();
+    notifyListeners();
+  }
+
   final String dataKey = 'my_data_key';
 
   Future<void> _savePlantData() async {
