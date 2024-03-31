@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
+import '../camera/take_picture_screen.dart';
 import '../settings/settings_view.dart';
 import 'plant_list.dart';
-import '../services/plant_service.dart';
 
 /// Displays a list of SampleItems.
 class PlantListView extends StatelessWidget {
@@ -30,19 +29,30 @@ class PlantListView extends StatelessWidget {
             ),
           ],
         ),
-        body: ChangeNotifierProvider(
-            create: (context) => PlantService(), child: const PlantList()),
-        bottomNavigationBar: NavigationBar(destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.room),
-            icon: Icon(Icons.room_outlined),
-            label: 'Rooms',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.list),
-            icon: Icon(Icons.list_outlined),
-            label: 'Journal',
-          ),
-        ]));
+        body: const PlantList(),
+        bottomNavigationBar: NavigationBar(
+          destinations: const <Widget>[
+            NavigationDestination(
+              selectedIcon: Icon(Icons.room),
+              icon: Icon(Icons.room_outlined),
+              label: 'Rooms',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.camera_roll),
+              icon: Icon(Icons.camera_roll_outlined),
+              label: 'Add Plant',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.list),
+              icon: Icon(Icons.list_outlined),
+              label: 'Journal',
+            ),
+          ],
+          onDestinationSelected: (int index) {
+            if (index == 1) {
+              Navigator.pushNamed(context, TakePictureScreen.routeName);
+            }
+          },
+        ));
   }
 }

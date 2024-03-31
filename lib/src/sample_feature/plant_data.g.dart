@@ -13,14 +13,17 @@ PlantData _$PlantDataFromJson(Map<String, dynamic> json) => PlantData(
           ? Colors.green
           : const ColorSerializer().fromJson(json['color'] as int),
       wateringInterval: json['wateringInterval'] as int? ?? 7,
-    ).._wateringHistory = (json['_wateringHistory'] as List<dynamic>)
-        .map((e) => WateringRecord.fromJson(e as Map<String, dynamic>))
-        .toList();
+    )
+      ..picturePath = json['picturePath'] as String?
+      .._wateringHistory = (json['_wateringHistory'] as List<dynamic>)
+          .map((e) => WateringRecord.fromJson(e as Map<String, dynamic>))
+          .toList();
 
 Map<String, dynamic> _$PlantDataToJson(PlantData instance) => <String, dynamic>{
       'name': instance.name,
       'waterLevel': instance.waterLevel,
       'wateringInterval': instance.wateringInterval,
+      'picturePath': instance.picturePath,
       '_wateringHistory':
           instance._wateringHistory.map((e) => e.toJson()).toList(),
     };

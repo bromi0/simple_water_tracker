@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 part 'plant_data.g.dart';
@@ -11,7 +15,10 @@ class PlantData {
     required this.waterLevel,
     this.color = Colors.green,
     this.wateringInterval = 7,
-  }) : id = const Uuid().v4();
+    XFile? picture, 
+  }) : id = const Uuid().v4() {
+    savePictureToFile(picture);
+  }
 
   final String id; // UUID
   @JsonKey(defaultValue: "Unknown")
@@ -22,7 +29,8 @@ class PlantData {
   @ColorSerializer()
   final Color color; // Represents the plant photo for now
   int wateringInterval; // Desired watering interval in days
-  
+  String? picturePath;
+
   @JsonKey(includeToJson: true, includeFromJson: true)
   List<WateringRecord> _wateringHistory =
       []; // List to store watering timestamps
@@ -31,6 +39,16 @@ class PlantData {
       _$PlantDataFromJson(json);
 
   Map<String, dynamic> toJson() => _$PlantDataToJson(this);
+
+  Future<void> savePictureToFile(XFile? picture) async {
+    if (picture == null) return;
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/$id.jpg';
+    final file = File(filePath);
+    await file.writeAsBytes(await picture.readAsBytes());
+    picturePath = filePath;
+  }
 
   void waterPlant() {
     if (waterLevel < 100) {
@@ -100,4 +118,3 @@ class ColorSerializer implements JsonConverter<Color, int> {
     return object.value;
   }
 }
-

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/sample_feature/plant_data.dart';
@@ -32,11 +34,19 @@ class PlantTile extends StatelessWidget {
         },
         child: Column(children: [
           Text(plant.name),
-          Container(
-            width: double.infinity,
-            height: 90,
-            color: plant.color,
-          ),
+          plant.picturePath == null
+              ? Container(
+                  width: double.infinity,
+                  height: 90,
+                  color: plant.color,
+                )
+              : Image.file(
+                  File(plant.picturePath!),
+                  width: double.infinity,
+                  height: 90,
+                  fit: BoxFit.cover,
+                ),
+          const Spacer(),
           Text('Water Level: ${plant.waterLevel}%'),
           const Spacer(),
           Padding(
