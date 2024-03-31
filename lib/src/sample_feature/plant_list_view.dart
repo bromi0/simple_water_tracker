@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../camera/take_picture_screen.dart';
 import '../settings/settings_view.dart';
@@ -42,15 +43,19 @@ class PlantListView extends StatelessWidget {
               icon: Icon(Icons.camera_roll_outlined),
               label: 'Add Plant',
             ),
-            NavigationDestination(
-              selectedIcon: Icon(Icons.list),
-              icon: Icon(Icons.list_outlined),
-              label: 'Journal',
-            ),
+            // NavigationDestination(
+            //   selectedIcon: Icon(Icons.list),
+            //   icon: Icon(Icons.list_outlined),
+            //   label: 'Journal',
+            // ),
           ],
-          onDestinationSelected: (int index) {
+          onDestinationSelected: (int index) async {
             if (index == 1) {
-              Navigator.pushNamed(context, TakePictureScreen.routeName);
+              if (await Permission.camera.request().isGranted) {
+                if (context.mounted) {
+                  Navigator.pushNamed(context, TakePictureScreen.routeName);
+                }
+              }
             }
           },
         ));

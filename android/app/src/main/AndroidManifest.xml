@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" />
     <application
-        android:label="simple_water_tracker"
+        android:label="Simply Water Plant"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

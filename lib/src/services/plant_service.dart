@@ -50,7 +50,7 @@ class PlantService extends ChangeNotifier {
     notifyListeners();
   }
 
-  final String dataKey = 'my_data_key';
+  final String dataKey = 'water_plant_data_key';
 
   Future<void> _savePlantData() async {
     final prefs = await SharedPreferences.getInstance();
