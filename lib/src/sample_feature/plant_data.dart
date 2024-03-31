@@ -1,8 +1,10 @@
-import 'dart:collection';
-
 import 'package:flutter/material.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+part 'plant_data.g.dart';
+
+@JsonSerializable(explicitToJson: true)
 class PlantData {
   PlantData({
     required this.name,
@@ -12,16 +14,27 @@ class PlantData {
   }) : id = const Uuid().v4();
 
   final String id; // UUID
+  @JsonKey(defaultValue: "Unknown")
   final String name;
+  @JsonKey(defaultValue: 100)
   int waterLevel; // Assuming a value between 0-100
+  @JsonKey(includeToJson: false)
+  @ColorSerializer()
   final Color color; // Represents the plant photo for now
   int wateringInterval; // Desired watering interval in days
-  final List<_WateringRecord> _wateringHistory =
+  
+  @JsonKey(includeToJson: true, includeFromJson: true)
+  List<WateringRecord> _wateringHistory =
       []; // List to store watering timestamps
+
+  factory PlantData.fromJson(Map<String, dynamic> json) =>
+      _$PlantDataFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PlantDataToJson(this);
 
   void waterPlant() {
     if (waterLevel < 100) {
-      _wateringHistory.add(_WateringRecord(
+      _wateringHistory.add(WateringRecord(
         timestamp: DateTime.now(),
         previousWaterLevel: waterLevel,
       )); // Add current timestamp to wateringHistory
@@ -58,46 +71,33 @@ class PlantData {
   }
 }
 
-class PlantStore extends ChangeNotifier {
-  final List<PlantData> _plants = [
-    PlantData(name: 'Cactus', waterLevel: 80, color: Colors.green.shade400),
-    PlantData(name: 'Sunflower', waterLevel: 50, color: Colors.yellow),
-    PlantData(name: 'Rose', waterLevel: 20, color: Colors.red),
-    PlantData(name: 'Cactus', waterLevel: 80, color: Colors.green.shade300),
-    PlantData(name: 'Sunflower', waterLevel: 50, color: Colors.yellow),
-    PlantData(name: 'Rose', waterLevel: 20, color: Colors.red),
-    // Add more plant data here
-  ];
-
-  UnmodifiableListView<PlantData> get plants => UnmodifiableListView(_plants);
-
-  void add(PlantData plant) {
-    _plants.add(plant);
-    notifyListeners();
-  }
-
-  void remove(PlantData plant) {
-    _plants.remove(plant);
-    notifyListeners();
-  }
-
-  void waterPlant(PlantData plant) {
-    plant.waterPlant();
-    notifyListeners();
-  }
-
-  void undoWaterPlant(PlantData plant) {
-    plant.undoWatering();
-    notifyListeners();
-  }
-}
-
-class _WateringRecord {
-  _WateringRecord({
+@JsonSerializable()
+class WateringRecord {
+  WateringRecord({
     required this.timestamp,
     required this.previousWaterLevel,
   });
 
+  factory WateringRecord.fromJson(Map<String, dynamic> json) =>
+      _$WateringRecordFromJson(json);
+
+  Map<String, dynamic> toJson() => _$WateringRecordToJson(this);
+
   final DateTime timestamp;
   final int previousWaterLevel;
 }
+
+class ColorSerializer implements JsonConverter<Color, int> {
+  const ColorSerializer();
+
+  @override
+  Color fromJson(int json) {
+    return Color(json);
+  }
+
+  @override
+  int toJson(Color object) {
+    return object.value;
+  }
+}
+

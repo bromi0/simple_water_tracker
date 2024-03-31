@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../settings/settings_view.dart';
-import 'plant_data.dart';
 import 'plant_list.dart';
+import '../services/plant_service.dart';
 
 /// Displays a list of SampleItems.
 class PlantListView extends StatelessWidget {
@@ -31,7 +31,7 @@ class PlantListView extends StatelessWidget {
           ],
         ),
         body: ChangeNotifierProvider(
-            create: (context) => PlantStore(), child: const PlantList()),
+            create: (context) => PlantService(), child: const PlantList()),
         bottomNavigationBar: NavigationBar(destinations: const <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Icons.room),

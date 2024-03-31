@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/sample_feature/plant_data.dart';
 
+import '../services/plant_service.dart';
+
 class PlantTile extends StatelessWidget {
   const PlantTile({
     super.key,
@@ -12,7 +14,7 @@ class PlantTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final PlantStore store = Provider.of<PlantStore>(context);
+    final PlantService store = Provider.of<PlantService>(context);
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       child: InkWell(
@@ -32,13 +34,13 @@ class PlantTile extends StatelessWidget {
           Text(plant.name),
           Container(
             width: double.infinity,
-            height: 100,
+            height: 90,
             color: plant.color,
           ),
           Text('Water Level: ${plant.waterLevel}%'),
           const Spacer(),
           Padding(
-            padding: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.only(bottom: 5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -51,7 +53,8 @@ class PlantTile extends StatelessWidget {
                 ),
                 // Edit plant
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {                    
+                  },
                   icon: const Icon(Icons.edit),
                 ),
                 // Delete plant

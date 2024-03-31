@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:simple_water_tracker/src/sample_feature/plant_data.dart';
-
+import '../services/plant_service.dart';
 import 'plant_tile.dart';
 
 // To work with lists that may contain a large number of items, it’s best
@@ -15,7 +14,7 @@ class PlantList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PlantStore>(
+    return Consumer<PlantService>(
       builder: (context, store, child) {
         final plants = store.plants;
         return GridView.count(
