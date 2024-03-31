@@ -2,7 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:simple_water_tracker/src/sample_feature/plant_data.dart';
+import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 
 class PlantService extends ChangeNotifier {
   PlantService() {

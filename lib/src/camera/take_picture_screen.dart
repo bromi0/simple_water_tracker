@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:simple_water_tracker/src/sample_feature/plant_data.dart';
+import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 
 import '../services/plant_service.dart';
 

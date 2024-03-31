@@ -5,15 +5,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/camera/take_picture_screen.dart';
 
-import 'sample_feature/sample_item_details_view.dart';
-import 'sample_feature/plant_list_view.dart';
+import 'basic_feature/sample_item_details_view.dart';
+import 'basic_feature/plant_list_view.dart';
 import 'services/plant_service.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
 /// The Widget that configures your application.
-class MyApp extends StatelessWidget {
-  const MyApp(
+class SimplyWaterPlantApp extends StatelessWidget {
+  const SimplyWaterPlantApp(
       {super.key, required this.settingsController, required this.mainCamera});
 
   final SettingsController settingsController;
