@@ -100,7 +100,7 @@ class PlantEditor extends StatefulWidget {
   final PlantData plant;
 
   @override
-  _PlantEditorState createState() => _PlantEditorState();
+  State<PlantEditor> createState() => _PlantEditorState();
 }
 
 class _PlantEditorState extends State<PlantEditor> {
