@@ -15,7 +15,7 @@ class PlantData {
     required this.waterLevel,
     this.color = Colors.green,
     this.wateringInterval = 7,
-    XFile? picture, 
+    XFile? picture,
   }) : id = const Uuid().v4() {
     savePictureToFile(picture);
   }
@@ -61,6 +61,7 @@ class PlantData {
   }
 
   void updateWaterLevel() {
+    if (_wateringHistory.isEmpty) return;
     final now = DateTime.now();
     final durationSinceLastWatering =
         now.difference(_wateringHistory.last.timestamp);

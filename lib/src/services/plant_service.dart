@@ -31,7 +31,7 @@ class PlantService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void waterPlant(PlantData plant) {    
+  void waterPlant(PlantData plant) {
     plant.waterPlant();
     _savePlantData();
     notifyListeners();
@@ -50,6 +50,12 @@ class PlantService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void calculateWaterLevels() {
+    for (var plantData in _plants) {
+      plantData.updateWaterLevel();
+    }
+  }
+
   final String dataKey = 'water_plant_data_key';
 
   Future<void> _savePlantData() async {
@@ -64,12 +70,13 @@ class PlantService extends ChangeNotifier {
 
   Future<void> _loadPlantData() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedData = prefs.getString(dataKey) ?? '';    
+    final savedData = prefs.getString(dataKey) ?? '';
     if (savedData.isNotEmpty) {
       final decodedData = jsonDecode(savedData) as List<dynamic>;
       _plants = decodedData
           .map((e) => PlantData.fromJson(e as Map<String, dynamic>))
           .toList();
+      calculateWaterLevels();
       notifyListeners();
     }
   }
