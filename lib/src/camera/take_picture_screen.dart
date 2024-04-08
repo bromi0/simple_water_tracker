@@ -47,7 +47,6 @@ class TakePictureScreenState extends State<TakePictureScreen> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final PlantService store = Provider.of<PlantService>(context);
@@ -84,7 +83,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             if (!context.mounted) return;
 
             final plant = PlantData(name: "new", waterLevel: 0, picture: image);
-            store.add(plant);
+            store.addNew(plant);
 
             Navigator.pop(context);
             // If the picture was taken, display it on a new screen.

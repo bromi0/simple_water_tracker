@@ -14,7 +14,9 @@ class PlantData {
     required this.name,
     required this.waterLevel,
     this.color = Colors.green,
-    this.wateringInterval = 7,
+    this.wateringInterval = 3,
+    // we don't save it for now, will start when there is UI to change.
+    this.wateringThreshold = 95,
     XFile? picture,
   }) : id = const Uuid().v4() {
     savePictureToFile(picture);
@@ -25,10 +27,11 @@ class PlantData {
   String name;
   @JsonKey(defaultValue: 100)
   int waterLevel; // Assuming a value between 0-100
-  @JsonKey(includeToJson: false)
   @ColorSerializer()
   final Color color; // Represents the plant photo for now
   int wateringInterval; // Desired watering interval in days
+  @JsonKey(includeToJson: false)
+  int wateringThreshold; // water level percentile when the notification is supposed to happen
   String? picturePath;
 
   @JsonKey(includeToJson: true, includeFromJson: true)
@@ -87,6 +90,26 @@ class PlantData {
         _wateringHistory.removeLast();
       }
     }
+  }
+
+  DateTime calculateWhenShouldWater() {
+    // the water level should be updated because we don't run any background calculations
+    updateWaterLevel();
+    // calculations
+    final double daysUntilWaterThreshold =
+        (waterLevel - wateringThreshold) / 100 * wateringInterval;
+    final totalSeconds = (daysUntilWaterThreshold * 24 * 60 * 60).round();
+
+    final now = DateTime.now();
+    final scheduledWateringDateTime = now.add(Duration(seconds: totalSeconds));
+    // round to hour
+    final scheduledWateringDateTimeToHour = DateTime(
+        scheduledWateringDateTime.year,
+        scheduledWateringDateTime.month,
+        scheduledWateringDateTime.day,
+        scheduledWateringDateTime.hour +
+            (scheduledWateringDateTime.minute > 30 ? 1 : 0));
+    return scheduledWateringDateTimeToHour;
   }
 }
 

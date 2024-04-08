@@ -4,6 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 
+class ExpectedWateringTime {
+  ExpectedWateringTime({required this.plant, required this.scheduledDateTime});
+  final PlantData plant;
+  final DateTime scheduledDateTime;
+}
+
 class PlantService extends ChangeNotifier {
   PlantService() {
     _loadPlantData();
@@ -21,9 +27,17 @@ class PlantService extends ChangeNotifier {
 
   UnmodifiableListView<PlantData> get plants => UnmodifiableListView(_plants);
 
+  List<ExpectedWateringTime> wateringSchedule = [];
+
   void add(PlantData plant) {
     _plants.add(plant);
     notifyListeners();
+  }
+
+  // here we make all init that plant is not supposed to know about
+  void addNew(PlantData plant) {
+    _plants.add(plant);
+    plant.waterPlant();
   }
 
   void remove(PlantData plant) {
@@ -56,9 +70,26 @@ class PlantService extends ChangeNotifier {
     }
   }
 
+  void calculateWateringSchedule() {
+    wateringSchedule.clear();
+    for (var plant in _plants) {
+      final expectedWatering = ExpectedWateringTime(
+          plant: plant, scheduledDateTime: plant.calculateWhenShouldWater());
+      wateringSchedule.add(expectedWatering);
+    }
+    wateringSchedule
+        .sort((a, b) => a.scheduledDateTime.compareTo(b.scheduledDateTime));
+  }
+
   final String dataKey = 'water_plant_data_key';
 
+  void updateStoreState() {
+    calculateWaterLevels();
+    calculateWateringSchedule();
+  }
+
   Future<void> _savePlantData() async {
+    updateStoreState();
     final prefs = await SharedPreferences.getInstance();
     List<Map<String, dynamic>> jsonList =
         _plants.map((plantData) => plantData.toJson()).toList();
