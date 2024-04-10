@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
+import 'notification_service.dart';
 
 class ExpectedWateringTime {
   ExpectedWateringTime({required this.plant, required this.scheduledDateTime});
@@ -34,21 +35,16 @@ class PlantService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // here we make all init that plant is not supposed to know about
-  void addNew(PlantData plant) {
-    _plants.add(plant);
-    plant.waterPlant();
-  }
-
   void remove(PlantData plant) {
     _plants.remove(plant);
     notifyListeners();
   }
 
-  void waterPlant(PlantData plant) {
+  void waterPlant(PlantData plant) async {
     plant.waterPlant();
     _savePlantData();
     notifyListeners();
+    await NotificationService.setupWaterScheduleNotifications(wateringSchedule);
   }
 
   void undoWaterPlant(PlantData plant) {

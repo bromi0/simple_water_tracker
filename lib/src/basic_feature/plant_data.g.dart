@@ -13,7 +13,7 @@ PlantData _$PlantDataFromJson(Map<String, dynamic> json) => PlantData(
           ? Colors.green
           : const ColorSerializer().fromJson(json['color'] as int),
       wateringInterval: json['wateringInterval'] as int? ?? 3,
-      wateringThreshold: json['wateringThreshold'] as int? ?? 95,
+      wateringThreshold: json['wateringThreshold'] as int? ?? 35,
     )
       ..picturePath = json['picturePath'] as String?
       .._wateringHistory = (json['_wateringHistory'] as List<dynamic>)

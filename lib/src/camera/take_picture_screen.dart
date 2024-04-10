@@ -83,7 +83,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             if (!context.mounted) return;
 
             final plant = PlantData(name: "new", waterLevel: 0, picture: image);
-            store.addNew(plant);
+            store.add(plant);
 
             Navigator.pop(context);
             // If the picture was taken, display it on a new screen.
@@ -98,7 +98,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             // );
           } catch (e) {
             // If an error occurs, log the error to the console.
-            //print(e);
+            // print(e);
           }
         },
         child: const Icon(Icons.camera_alt),

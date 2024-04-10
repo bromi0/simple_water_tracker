@@ -16,7 +16,7 @@ class PlantData {
     this.color = Colors.green,
     this.wateringInterval = 3,
     // we don't save it for now, will start when there is UI to change.
-    this.wateringThreshold = 95,
+    this.wateringThreshold = 35,
     XFile? picture,
   }) : id = const Uuid().v4() {
     savePictureToFile(picture);
@@ -102,14 +102,18 @@ class PlantData {
 
     final now = DateTime.now();
     final scheduledWateringDateTime = now.add(Duration(seconds: totalSeconds));
-    // round to hour
-    final scheduledWateringDateTimeToHour = DateTime(
-        scheduledWateringDateTime.year,
-        scheduledWateringDateTime.month,
-        scheduledWateringDateTime.day,
-        scheduledWateringDateTime.hour +
-            (scheduledWateringDateTime.minute > 30 ? 1 : 0));
-    return scheduledWateringDateTimeToHour;
+    if (totalSeconds > 3600) {
+      // round to hour
+      final scheduledWateringDateTimeToHour = DateTime(
+          scheduledWateringDateTime.year,
+          scheduledWateringDateTime.month,
+          scheduledWateringDateTime.day,
+          scheduledWateringDateTime.hour +
+              (scheduledWateringDateTime.minute > 30 ? 1 : 0));
+      return scheduledWateringDateTimeToHour;
+    } else {
+      return scheduledWateringDateTime;
+    }
   }
 }
 
