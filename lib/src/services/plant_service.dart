@@ -33,12 +33,12 @@ class PlantService extends ChangeNotifier {
   List<ExpectedWateringTime> wateringSchedule = [];
 
   Future<void> debugNotifications() async {
-    final List<ActiveNotification> activeNotifications =
-        await flutterLocalNotificationsPlugin.getActiveNotifications();
-    print("Active notifications: $activeNotifications");
-    final List<PendingNotificationRequest> pendingNotifications =
-        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
-    print("Pending notifications: $pendingNotifications");
+    // final List<ActiveNotification> activeNotifications =
+    //     await flutterLocalNotificationsPlugin.getActiveNotifications();
+    // print("Active notifications: $activeNotifications");
+    // final List<PendingNotificationRequest> pendingNotifications =
+    //     await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    // print("Pending notifications: $pendingNotifications");
   }
 
   void add(PlantData plant) {
@@ -52,7 +52,7 @@ class PlantService extends ChangeNotifier {
   }
 
   void waterPlant(PlantData plant) async {
-    await debugNotifications();
+    // await debugNotifications();
     plant.waterPlant();
     _savePlantData();
     notifyListeners();

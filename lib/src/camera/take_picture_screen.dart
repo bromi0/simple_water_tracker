@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'package:simple_water_tracker/src/helpers/plant_name_generator.dart';
@@ -73,7 +71,7 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
                   border: OutlineInputBorder(),
                 ),
               )),
-          Text('Days between watering: ${_currentWateringIntervalSliderValue}',
+          Text('Days between watering: $_currentWateringIntervalSliderValue',
               style: sliderTextStyle),
           const SizedBox(height: 12.0),
           Slider(

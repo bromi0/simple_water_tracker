@@ -28,12 +28,12 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime);
-    print('Setup scheduled notification for $futureDate');
+    // print('Setup scheduled notification for $futureDate');
   }
 
   static Future<void> setupWaterScheduleNotifications(
       List<ExpectedWateringTime> wateringSchedule) async {
-    print('Clearing schedule.');
+    // print('Clearing schedule.');
     flutterLocalNotificationsPlugin.cancelAll();
     var now = DateTime.now();
     for (var i = 0; i < wateringSchedule.length; i++) {
