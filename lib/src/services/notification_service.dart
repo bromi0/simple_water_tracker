@@ -5,6 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   static Future<void> zonedScheduleNotification({
+    required int id,
     required DateTime dt,
     String title = 'default title',
     String body = 'default body',
@@ -15,7 +16,7 @@ class NotificationService {
       return;
     }
     await flutterLocalNotificationsPlugin.zonedSchedule(
-        0,
+        id,
         title,
         body,
         futureDate,
@@ -27,17 +28,19 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime);
-    // print('Setup scheduled notification for $futureDate');
+    print('Setup scheduled notification for $futureDate');
   }
 
   static Future<void> setupWaterScheduleNotifications(
       List<ExpectedWateringTime> wateringSchedule) async {
-    // print('Clearing schedule.');
+    print('Clearing schedule.');
     flutterLocalNotificationsPlugin.cancelAll();
     var now = DateTime.now();
-    for (var note in wateringSchedule) {
+    for (var i = 0; i < wateringSchedule.length; i++) {
+      final note = wateringSchedule[i];
       if (note.scheduledDateTime.compareTo(now) > 0) {
         zonedScheduleNotification(
+            id: i,
             dt: note.scheduledDateTime,
             title: note.plant.name,
             body: '${note.plant.name}: Water me please...');

@@ -1,7 +1,9 @@
 import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:simple_water_tracker/main.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'notification_service.dart';
 
@@ -30,6 +32,15 @@ class PlantService extends ChangeNotifier {
 
   List<ExpectedWateringTime> wateringSchedule = [];
 
+  Future<void> debugNotifications() async {
+    final List<ActiveNotification> activeNotifications =
+        await flutterLocalNotificationsPlugin.getActiveNotifications();
+    print("Active notifications: $activeNotifications");
+    final List<PendingNotificationRequest> pendingNotifications =
+        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    print("Pending notifications: $pendingNotifications");
+  }
+
   void add(PlantData plant) {
     _plants.add(plant);
     notifyListeners();
@@ -41,6 +52,7 @@ class PlantService extends ChangeNotifier {
   }
 
   void waterPlant(PlantData plant) async {
+    await debugNotifications();
     plant.waterPlant();
     _savePlantData();
     notifyListeners();
