@@ -161,7 +161,7 @@ class _PlantEditorState extends State<PlantEditor> {
                 onPressed: _decrementInterval,
                 icon: const Icon(Icons.remove),
               ),
-              Text('Watering Interval: $_wateringInterval days'),
+              Text('Days between watering: $_wateringInterval'),
               IconButton(
                 onPressed: _incrementInterval,
                 icon: const Icon(Icons.add),
