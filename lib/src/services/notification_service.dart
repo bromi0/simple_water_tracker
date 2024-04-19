@@ -15,16 +15,15 @@ class NotificationService {
       // print('Got date to schedule in the past: $futureDate');
       return;
     }
+    const androidNotificationDetails = AndroidNotificationDetails(
+        'mainChannel', 'Water time notifications',
+        channelDescription: 'The notifications reminding to water your plants.',
+        importance: Importance.high);
+    const notificationDetails =
+        NotificationDetails(android: androidNotificationDetails);
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        futureDate,
-        const NotificationDetails(
-            android: AndroidNotificationDetails(
-                'mainChannel', 'Water time notifications',
-                channelDescription:
-                    'The notifications reminding to water your plants.')),
+        id, title, body, futureDate, notificationDetails,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime);

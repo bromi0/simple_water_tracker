@@ -101,7 +101,7 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
           ),
         ],
       ),
-      floatingActionButton: Container(
+      floatingActionButton: SizedBox(
         height: 70,
         width: 70,
         child: FittedBox(

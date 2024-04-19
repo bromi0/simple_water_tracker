@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,12 +18,33 @@ void main() async {
   // Camera init
   final cameras = await availableCameras();
   final firstCamera = cameras.first;
+
+  await initNotifications();
+
+  // Set up the SettingsController, which will glue user settings to multiple
+  // Flutter Widgets.
+  final settingsController =
+      SettingsController(await SettingsService.loadFromPrefs());
+
+  // Load the user's preferred theme while the splash screen is displayed.
+  // This prevents a sudden theme change when the app is first displayed.
+  await settingsController.loadSettings();
+
+  // Run the app and pass in the SettingsController. The app listens to the
+  // SettingsController for changes, then passes it further down to the
+  // SettingsView.
+  runApp(SimplyWaterPlantApp(
+    settingsController: settingsController,
+    mainCamera: firstCamera,
+  ));
+}
+
+Future<void> initNotifications() async {
   // Timezone needed for scheduled notifications
   await _configureLocalTimeZone();
-
-  const AndroidInitializationSettings initializationSettingsAndroid =
+  const initializationSettingsAndroid =
       AndroidInitializationSettings('notification_icon');
-  const InitializationSettings initializationSettings = InitializationSettings(
+  const initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
   );
   await flutterLocalNotificationsPlugin.initialize(
@@ -44,22 +64,6 @@ void main() async {
     },
     //onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
-
-  // Set up the SettingsController, which will glue user settings to multiple
-  // Flutter Widgets.
-  final settingsController = SettingsController(SettingsService());
-
-  // Load the user's preferred theme while the splash screen is displayed.
-  // This prevents a sudden theme change when the app is first displayed.
-  await settingsController.loadSettings();
-
-  // Run the app and pass in the SettingsController. The app listens to the
-  // SettingsController for changes, then passes it further down to the
-  // SettingsView.
-  runApp(SimplyWaterPlantApp(
-    settingsController: settingsController,
-    mainCamera: firstCamera,
-  ));
 }
 
 Future<void> _configureLocalTimeZone() async {
