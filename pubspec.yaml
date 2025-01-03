@@ -16,7 +16,7 @@ dependencies:
     flutter_local_notifications: ^17.0.0
     flutter_localizations:
         sdk: flutter
-    flutter_timezone: ^1.0.8
+    flutter_timezone: ^4.0.0
     json_annotation: ^4.8.1
     path: ^1.9.0
     path_provider: ^2.1.2
@@ -30,7 +30,7 @@ dev_dependencies:
     flutter_test:
         sdk: flutter
 
-    flutter_lints: ^3.0.0
+    flutter_lints: ^5.0.0
     build_runner: ^2.4.9
     json_serializable: ^6.7.1
 
