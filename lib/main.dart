@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -16,8 +15,8 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Camera init
-  final cameras = await availableCameras();
-  final firstCamera = cameras.first;
+  // final cameras = await availableCameras();
+  // final firstCamera = cameras.first;
 
   await initNotifications();
 
@@ -35,7 +34,7 @@ void main() async {
   // SettingsView.
   runApp(SimplyWaterPlantApp(
     settingsController: settingsController,
-    mainCamera: firstCamera,
+    // mainCamera: firstCamera,
   ));
 }
 

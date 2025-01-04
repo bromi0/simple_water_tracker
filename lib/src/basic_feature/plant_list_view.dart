@@ -1,11 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:simple_water_tracker/main.dart';
 
 import '../camera/take_picture_screen.dart';
+import '../services/notification_service.dart';
 import '../settings/settings_view.dart';
 import 'plant_list.dart';
 
@@ -22,61 +18,64 @@ class PlantListView extends StatefulWidget {
 }
 
 class _PlantListViewState extends State<PlantListView> {
-  bool _notificationsEnabled = false;
-
   @override
   void initState() {
     super.initState();
-    _isAndroidPermissionGranted();
-    _requestPermissions();
+    _initializeNotifications();
+    // _isAndroidPermissionGranted();
+    // _requestPermissions();
     // _configureDidReceiveLocalNotificationSubject();
     // _configureSelectNotificationSubject();
   }
 
-  Future<void> _isAndroidPermissionGranted() async {
-    if (Platform.isAndroid) {
-      final bool granted = await flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>()
-              ?.areNotificationsEnabled() ??
-          false;
-
-      setState(() {
-        _notificationsEnabled = granted;
-      });
-    }
+  Future<void> _initializeNotifications() async {
+    await NotificationService.initializeNotifications();
   }
 
-  Future<void> _requestPermissions() async {
-    if (Platform.isIOS || Platform.isMacOS) {
-      await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-      await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              MacOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-    } else if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+  // Future<void> _isAndroidPermissionGranted() async {
+  //   if (Platform.isAndroid) {
+  //     final bool granted = await flutterLocalNotificationsPlugin
+  //             .resolvePlatformSpecificImplementation<
+  //                 AndroidFlutterLocalNotificationsPlugin>()
+  //             ?.areNotificationsEnabled() ??
+  //         false;
 
-      final bool? grantedNotificationPermission =
-          await androidImplementation?.requestNotificationsPermission();
-      setState(() {
-        _notificationsEnabled = grantedNotificationPermission ?? false;
-      });
-    }
-  }
+  //     setState(() {
+  //       _notificationsEnabled = granted;
+  //     });
+  //   }
+  // }
+
+  // Future<void> _requestPermissions() async {
+  //   if (Platform.isIOS || Platform.isMacOS) {
+  //     await flutterLocalNotificationsPlugin
+  //         .resolvePlatformSpecificImplementation<
+  //             IOSFlutterLocalNotificationsPlugin>()
+  //         ?.requestPermissions(
+  //           alert: true,
+  //           badge: true,
+  //           sound: true,
+  //         );
+  //     await flutterLocalNotificationsPlugin
+  //         .resolvePlatformSpecificImplementation<
+  //             MacOSFlutterLocalNotificationsPlugin>()
+  //         ?.requestPermissions(
+  //           alert: true,
+  //           badge: true,
+  //           sound: true,
+  //         );
+  //   } else if (Platform.isAndroid) {
+  //     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+  //         flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+  //             AndroidFlutterLocalNotificationsPlugin>();
+
+  //     final bool? grantedNotificationPermission =
+  //         await androidImplementation?.requestNotificationsPermission();
+  //     setState(() {
+  //       _notificationsEnabled = grantedNotificationPermission ?? false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +87,9 @@ class _PlantListViewState extends State<PlantListView> {
               icon: const Icon(Icons.punch_clock),
               onPressed: () async {
                 // Test local notifications
-                // await NotificationService.zonedScheduleNotification();
+                await NotificationService.zonedScheduleNotification(
+                    id: 999,
+                    dt: DateTime.now().add(const Duration(seconds: 10)));
               },
             ),
             IconButton(
@@ -123,11 +124,11 @@ class _PlantListViewState extends State<PlantListView> {
           ],
           onDestinationSelected: (int index) async {
             if (index == 1) {
-              if (await Permission.camera.request().isGranted) {
-                if (context.mounted) {
-                  Navigator.pushNamed(context, TakePictureScreen.routeName);
-                }
+              // if (await Permission.camera.request().isGranted) {
+              if (context.mounted) {
+                Navigator.pushNamed(context, TakePictureScreen.routeName);
               }
+              // }
             }
           },
         ));

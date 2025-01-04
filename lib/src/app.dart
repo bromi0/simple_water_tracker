@@ -1,4 +1,3 @@
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -13,11 +12,9 @@ import 'settings/settings_view.dart';
 
 /// The Widget that configures your application.
 class SimplyWaterPlantApp extends StatelessWidget {
-  const SimplyWaterPlantApp(
-      {super.key, required this.settingsController, required this.mainCamera});
+  const SimplyWaterPlantApp({super.key, required this.settingsController});
 
   final SettingsController settingsController;
-  final CameraDescription mainCamera;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +75,7 @@ class SimplyWaterPlantApp extends StatelessWidget {
                     case SampleItemDetailsView.routeName:
                       return const SampleItemDetailsView();
                     case TakePictureScreen.routeName:
-                      return TakePictureScreen(camera: mainCamera);
+                      return const TakePictureScreen();
                     case PlantListView.routeName:
                     default:
                       return const PlantListView();

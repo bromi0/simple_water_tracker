@@ -11,10 +11,8 @@ import '../services/plant_service.dart';
 class TakePictureScreen extends StatefulWidget {
   const TakePictureScreen({
     super.key,
-    required this.camera,
   });
 
-  final CameraDescription camera;
   static const routeName = '/camera';
 
   @override
@@ -22,33 +20,71 @@ class TakePictureScreen extends StatefulWidget {
 }
 
 class _TakePictureScreenState extends State<TakePictureScreen> {
-  late CameraController _cameraController;
+  CameraController? _cameraController;
   final TextEditingController _plantNameController =
       TextEditingController(text: generateRandomPlantName());
-  late Future<void> _initializeControllerFuture;
+  late Future<void>? _initializeControllerFuture;
   int _currentWateringIntervalSliderValue = 3;
+  bool _isCameraAvailable = false;
 
   @override
   void initState() {
     super.initState();
     // To display the current output from the Camera,
-    // create a CameraController.
-    _cameraController = CameraController(
-      // Get a specific camera from the list of available cameras.
-      widget.camera,
-      // Define the resolution to use.
-      ResolutionPreset.medium,
-    );
+    // create a CameraController, if camera is available.
+    _initializeCamera();
+  }
 
-    // Next, initialize the controller. This returns a Future.
-    _initializeControllerFuture = _cameraController.initialize();
+  Future<void> _initializeCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        setState(() {
+          _isCameraAvailable = false;
+        });
+        return;
+      }
+
+      final firstCamera = cameras.first;
+      final controller = CameraController(
+        firstCamera,
+        ResolutionPreset.veryHigh,
+      );
+
+      _cameraController = controller;
+      _initializeControllerFuture = controller.initialize();
+
+      setState(() {
+        _isCameraAvailable = true;
+      });
+    } catch (e) {
+      setState(() {
+        _isCameraAvailable = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     // Dispose of the controller when the widget is disposed.
-    _cameraController.dispose();
+    _cameraController?.dispose();
+    _plantNameController.dispose();
     super.dispose();
+  }
+
+  Future<XFile?> _takePicture() async {
+    if (!_isCameraAvailable || _cameraController == null) {
+      return null;
+    }
+
+    try {
+      await _initializeControllerFuture;
+      final XFile file = await _cameraController!.takePicture();
+      return file;
+    } catch (e) {
+      debugPrint('Error taking picture: $e');
+      return null;
+    }
   }
 
   @override
@@ -86,19 +122,9 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
               }),
           const SizedBox(height: 24.0),
           Expanded(
-            child: FutureBuilder<void>(
-              future: _initializeControllerFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  // If the Future is complete, display the preview.
-                  return CameraPreview(_cameraController);
-                } else {
-                  // Otherwise, display a loading indicator.
-                  return const Center(child: CircularProgressIndicator());
-                }
-              },
-            ),
-          ),
+              child: _isCameraAvailable
+                  ? _buildCameraView()
+                  : _buildNoCameraView()),
         ],
       ),
       floatingActionButton: SizedBox(
@@ -110,12 +136,7 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
               // Take the Picture in a try / catch block. If anything goes wrong,
               // catch the error.
               try {
-                // Ensure that the camera is initialized.
-                await _initializeControllerFuture;
-
-                // Attempt to take a picture and get the file `image`
-                // where it was saved.
-                final image = await _cameraController.takePicture();
+                final XFile? imageFile = await _takePicture();
 
                 if (!context.mounted) return;
 
@@ -123,21 +144,11 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
                 final plant = PlantData(
                     name: _plantNameController.text,
                     waterLevel: 0,
-                    picture: image,
+                    picture: imageFile,
                     wateringInterval: _currentWateringIntervalSliderValue);
                 store.add(plant);
 
                 Navigator.pop(context);
-                // If the picture was taken, display it on a new screen.
-                // await Navigator.of(context).push(
-                //   MaterialPageRoute(
-                //     builder: (context) => DisplayPictureScreen(
-                //       // Pass the automatically generated path to
-                //       // the DisplayPictureScreen widget.
-                //       imagePath: image.path,
-                //     ),
-                //   ),
-                // );
               } catch (e) {
                 // If an error occurs, log the error to the console.
                 // print(e);
@@ -146,6 +157,41 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
             child: const Icon(Icons.camera_alt),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCameraView() {
+    return FutureBuilder<void>(
+      future: _initializeControllerFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          // If the Future is complete, display the preview.
+          return CameraPreview(_cameraController!);
+        } else {
+          // Otherwise, display a loading indicator.
+          return const Center(child: CircularProgressIndicator());
+        }
+      },
+    );
+  }
+
+  Widget _buildNoCameraView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 16),
+          const Text(
+            'No camera available',
+            style: TextStyle(fontSize: 18),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'You can still add a plant without a photo',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
