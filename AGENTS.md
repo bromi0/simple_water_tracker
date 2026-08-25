@@ -34,6 +34,8 @@ Prefer the smallest coherent change that solves the task. Follow existing projec
 
 Treat dependency and toolchain changes as migrations rather than routine cleanup. Before changing Flutter, Dart, Gradle, AGP, Kotlin, Android SDK/NDK versions, or Java compatibility, inspect the current configuration and explain the compatibility reason for each required change. Do not run `flutter upgrade` or switch Flutter channels.
 
+Keep project build configuration resource-conscious so development remains reliable in constrained environments. Prefer lower peak memory usage and limited parallelism over faster builds when the two conflict.
+
 Do not hand-edit generated files. Change their source inputs and regenerate them with the project's normal tooling. Review generated diffs before keeping them.
 
 When a command fails, diagnose the failure before changing configuration or adding workarounds. Prefer standard Flutter, Dart, Gradle, and Android tooling over project-specific wrappers or environment hacks unless a concrete issue requires one.
