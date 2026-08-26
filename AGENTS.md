@@ -18,9 +18,20 @@ Application entry points are `lib/main.dart` and `lib/src/app.dart`. Feature cod
 
 Use Dart's standard two-space indentation and accept `dart format` output. Name files and libraries in `snake_case`, types in `UpperCamelCase`, and variables or methods in `lowerCamelCase`. Prefer small widgets, `const` constructors where possible, and feature-local code over adding unrelated logic to `main.dart`. Do not hand-edit generated `*.g.dart` or localization output; update the source annotations or `app_en.arb` and regenerate instead.
 
+Add concise comments for non-obvious decisions, platform quirks, lifecycle or scheduling behavior, and invariants that future changes must preserve. Avoid comments that merely restate the code or leave disabled implementations in place.
+
 ## Testing Guidelines
 
 Use `flutter_test`. Keep test files named `*_test.dart`, group related behavior with `group`, and write expectations in behavior-focused terms such as `should display a string of text`. Add unit tests for services and helpers, and widget tests for visible states and user interactions. Run `flutter analyze` and `flutter test` before submitting changes. No coverage threshold is currently enforced; new behavior should still include focused regression tests.
+
+## Watering Reminder Architecture
+
+- Reminder times are derived from plant state and shown in the watering schedule. Keep this application logic separate from platform notification delivery.
+- Do not interrupt users with watering notifications while they are actively working through plants in the app. Schedule reminders after the app moves to the background, allow a short exit grace period, and cancel pending watering notifications when the app returns to the foreground.
+- An overdue plant may be reminded again after a short cooldown, but dismissing a notification must never mean that the plant was watered. Watering, editing, undoing, or removing a plant must keep future reminders in sync and must not leave stale notifications.
+- Keep delivery policy flexible enough to add quiet hours, morning delivery, and grouped summaries without changing the underlying plant calculations.
+- The notification service owns communication with the OS, while timezone initialization happens before scheduling begins. Web may show the watering schedule even when local notification delivery is unavailable.
+- Keep the short-delay test notification separate from real watering reminders so reminder rescheduling or cancellation does not interfere with device testing.
 
 ## Commit & Pull Request Guidelines
 
