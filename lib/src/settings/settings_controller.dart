@@ -24,12 +24,7 @@ class SettingsController with ChangeNotifier {
   // Allow Widgets to read the user's preferred ThemeMode.
   ThemeMode get themeMode => _themeMode;
 
-  bool _notificationsEnabled = false;
-  Future<bool> get notificationsEnabled async {
-    final bool state = await _requestPermissions();
-    _notificationsEnabled = state;
-    return state;
-  }
+  Future<bool> get notificationsEnabled => _requestPermissions();
 
   /// Load the user's settings from the SettingsService. It may load from a
   /// local database or the internet. The controller only knows it can load the

@@ -116,9 +116,9 @@ class NotificationService {
   static Future<void> debugNotifications() async {
     final List<ActiveNotification> activeNotifications =
         await flutterLocalNotificationsPlugin.getActiveNotifications();
-    print("Active notifications: $activeNotifications");
+    debugPrint('Active notifications: $activeNotifications');
     final List<PendingNotificationRequest> pendingNotifications =
         await flutterLocalNotificationsPlugin.pendingNotificationRequests();
-    print("Pending notifications: $pendingNotifications");
+    debugPrint('Pending notifications: $pendingNotifications');
   }
 }
