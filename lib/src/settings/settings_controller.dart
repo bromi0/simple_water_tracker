@@ -1,8 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:simple_water_tracker/main.dart';
+
+import '../services/notification_service.dart';
 
 import 'settings_service.dart';
 
@@ -24,7 +22,8 @@ class SettingsController with ChangeNotifier {
   // Allow Widgets to read the user's preferred ThemeMode.
   ThemeMode get themeMode => _themeMode;
 
-  Future<bool> get notificationsEnabled => _requestPermissions();
+  Future<bool> get notificationsEnabled =>
+      NotificationService.isPermissionsGranted();
 
   /// Load the user's settings from the SettingsService. It may load from a
   /// local database or the internet. The controller only knows it can load the
@@ -51,19 +50,6 @@ class SettingsController with ChangeNotifier {
     await _settingsService.updateThemeMode(newThemeMode);
   }
 
-  Future<bool> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-
-      return await androidImplementation?.requestNotificationsPermission() ??
-          false;
-    }
-    return false;
-  }
-
-  void requestNotificationsPermission() {
-    _requestPermissions();
-  }
+  Future<bool> requestNotificationsPermission() =>
+      NotificationService.requestPermissions();
 }

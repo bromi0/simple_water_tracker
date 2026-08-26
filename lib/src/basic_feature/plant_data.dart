@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../services/watering_reminder_calculator.dart';
+
 part 'plant_data.g.dart';
 
 @JsonSerializable(explicitToJson: true)
@@ -13,7 +15,8 @@ class PlantData {
     this.wateringInterval = 3,
     // we don't save it for now, will start when there is UI to change.
     this.wateringThreshold = 35,
-  }) : id = const Uuid().v4();
+    String? id,
+  }) : id = id ?? const Uuid().v4();
 
   final String id; // UUID
   @JsonKey(defaultValue: "Unknown")
@@ -33,8 +36,7 @@ class PlantData {
   bool get didPictureSaveFail => _didPictureSaveFail;
 
   @JsonKey(includeToJson: true, includeFromJson: true)
-  List<WateringRecord> _wateringHistory =
-      []; // List to store watering timestamps
+  List<WateringRecord> _wateringHistory = []; // List to store watering timestamps
 
   factory PlantData.fromJson(Map<String, dynamic> json) =>
       _$PlantDataFromJson(json);
@@ -56,10 +58,12 @@ class PlantData {
 
   void waterPlant() {
     if (waterLevel < 100) {
-      _wateringHistory.add(WateringRecord(
-        timestamp: DateTime.now(),
-        previousWaterLevel: waterLevel,
-      )); // Add current timestamp to wateringHistory
+      _wateringHistory.add(
+        WateringRecord(
+          timestamp: DateTime.now(),
+          previousWaterLevel: waterLevel,
+        ),
+      ); // Add current timestamp to wateringHistory
       waterLevel = 100; // Reset water level to 100 after watering
     }
   }
@@ -67,15 +71,18 @@ class PlantData {
   void updateWaterLevel() {
     if (_wateringHistory.isEmpty) return;
     final now = DateTime.now();
-    final durationSinceLastWatering =
-        now.difference(_wateringHistory.last.timestamp);
+    final durationSinceLastWatering = now.difference(
+      _wateringHistory.last.timestamp,
+    );
     final elapsedHours = durationSinceLastWatering.inHours;
     final intervalHours = wateringInterval * 24; // Convert days to hours
 
     // Calculate water level drop based on elapsed time and desired watering interval
     waterLevel = 100 - ((elapsedHours / intervalHours) * 100).floor();
-    waterLevel =
-        waterLevel.clamp(0, 100); // Ensure water level stays within 0-100 range
+    waterLevel = waterLevel.clamp(
+      0,
+      100,
+    ); // Ensure water level stays within 0-100 range
   }
 
   void undoWatering() {
@@ -83,8 +90,11 @@ class PlantData {
       final now = DateTime.now();
       final lastTimestamp = _wateringHistory.last.timestamp;
       final todayDate = DateTime(now.year, now.month, now.day);
-      final lastWateringRecordDate =
-          DateTime(lastTimestamp.year, lastTimestamp.month, lastTimestamp.day);
+      final lastWateringRecordDate = DateTime(
+        lastTimestamp.year,
+        lastTimestamp.month,
+        lastTimestamp.day,
+      );
 
       if (lastWateringRecordDate == todayDate) {
         waterLevel = _wateringHistory.last.previousWaterLevel;
@@ -93,37 +103,24 @@ class PlantData {
     }
   }
 
-  DateTime calculateWhenShouldWater() {
+  DateTime calculateWhenShouldWater({
+    DateTime? now,
+    WateringReminderCalculator calculator = const WateringReminderCalculator(),
+  }) {
     // the water level should be updated because we don't run any background calculations
     updateWaterLevel();
-    // calculations
-    final double daysUntilWaterThreshold =
-        (waterLevel - wateringThreshold) / 100 * wateringInterval;
-    final totalSeconds = (daysUntilWaterThreshold * 24 * 60 * 60).round();
-
-    final now = DateTime.now();
-    final scheduledWateringDateTime = now.add(Duration(seconds: totalSeconds));
-    if (totalSeconds > 3600) {
-      // round to hour
-      final scheduledWateringDateTimeToHour = DateTime(
-          scheduledWateringDateTime.year,
-          scheduledWateringDateTime.month,
-          scheduledWateringDateTime.day,
-          scheduledWateringDateTime.hour +
-              (scheduledWateringDateTime.minute > 30 ? 1 : 0));
-      return scheduledWateringDateTimeToHour;
-    } else {
-      return scheduledWateringDateTime;
-    }
+    return calculator.calculate(
+      now: now ?? DateTime.now(),
+      waterLevel: waterLevel,
+      wateringIntervalDays: wateringInterval,
+      wateringThreshold: wateringThreshold,
+    );
   }
 }
 
 @JsonSerializable()
 class WateringRecord {
-  WateringRecord({
-    required this.timestamp,
-    required this.previousWaterLevel,
-  });
+  WateringRecord({required this.timestamp, required this.previousWaterLevel});
 
   factory WateringRecord.fromJson(Map<String, dynamic> json) =>
       _$WateringRecordFromJson(json);
