@@ -39,6 +39,11 @@ void main() async {
 }
 
 Future<void> initNotifications() async {
+  // Platform delivery is currently configured only for Android. The newer
+  // plugin has an endorsed web implementation, but enabling it requires a
+  // separate service-worker and permission UX decision.
+  if (kIsWeb || !Platform.isAndroid) return;
+
   // Timezone needed for scheduled notifications
   await _configureLocalTimeZone();
   const initializationSettingsAndroid =
@@ -47,9 +52,8 @@ Future<void> initNotifications() async {
     android: initializationSettingsAndroid,
   );
   await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse:
-        (NotificationResponse notificationResponse) {
+    settings: initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) {
       switch (notificationResponse.notificationResponseType) {
         case NotificationResponseType.selectedNotification:
           //selectNotificationStream.add(notificationResponse.payload);
@@ -58,6 +62,9 @@ Future<void> initNotifications() async {
 //           if (notificationResponse.actionId == navigationActionId) {
 //             selectNotificationStream.add(notificationResponse.payload);
 //           }
+          break;
+        case NotificationResponseType.notificationDismissed:
+          // Dismissal is neutral: only watering a plant changes its state.
           break;
       }
     },

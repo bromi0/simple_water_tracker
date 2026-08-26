@@ -38,14 +38,12 @@ class NotificationService {
     );
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      futureDate,
-      notificationDetails,
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: futureDate,
+      notificationDetails: notificationDetails,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
     return true;
   }
@@ -83,7 +81,7 @@ class NotificationService {
       prefs.getStringList(_wateringIdsKey)?.map(int.parse) ?? const [],
     );
     for (final id in _wateringNotificationIds) {
-      await flutterLocalNotificationsPlugin.cancel(id);
+      await flutterLocalNotificationsPlugin.cancel(id: id);
     }
     _wateringNotificationIds.clear();
     await prefs.remove(_wateringIdsKey);
