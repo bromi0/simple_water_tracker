@@ -11,9 +11,7 @@ SettingsService _$SettingsServiceFromJson(Map<String, dynamic> json) =>
       .._themeMode = $enumDecode(_$ThemeModeEnumMap, json['_themeMode']);
 
 Map<String, dynamic> _$SettingsServiceToJson(SettingsService instance) =>
-    <String, dynamic>{
-      '_themeMode': _$ThemeModeEnumMap[instance._themeMode]!,
-    };
+    <String, dynamic>{'_themeMode': _$ThemeModeEnumMap[instance._themeMode]!};
 
 const _$ThemeModeEnumMap = {
   ThemeMode.system: 'system',
