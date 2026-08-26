@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'package:simple_water_tracker/src/helpers/plant_name_generator.dart';
@@ -21,72 +23,215 @@ class TakePictureScreen extends StatefulWidget {
   State<TakePictureScreen> createState() => _TakePictureScreenState();
 }
 
-class _TakePictureScreenState extends State<TakePictureScreen> {
+enum _CameraStatus { initializing, ready, capturing, unavailable, error }
+
+enum _CameraPermissionDecision { granted, needsRequest }
+
+class _TakePictureScreenState extends State<TakePictureScreen>
+    with WidgetsBindingObserver {
   CameraController? _cameraController;
   final TextEditingController _plantNameController =
       TextEditingController(text: generateRandomPlantName());
-  late Future<void>? _initializeControllerFuture;
   int _currentWateringIntervalSliderValue = 3;
-  bool _isCameraAvailable = false;
+  _CameraStatus _cameraStatus = _CameraStatus.initializing;
+  Future<void>? _cameraDisposal;
+  bool _isInitializingCamera = false;
+  bool _cameraWasDisposedForLifecycle = false;
+  bool _cameraPermissionNeeded = false;
+  bool _cameraPermissionRequiresSettings = false;
+  bool _waitingForPermissionSettings = false;
 
   @override
   void initState() {
     super.initState();
-    // To display the current output from the Camera,
-    // create a CameraController, if camera is available.
-    _initializeCamera();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_initializeCamera());
   }
 
-  Future<void> _initializeCamera() async {
+  Future<void> _initializeCamera({bool requestPermission = false}) async {
+    if (_isInitializingCamera ||
+        _cameraStatus == _CameraStatus.ready ||
+        _cameraStatus == _CameraStatus.capturing) {
+      return;
+    }
+    _isInitializingCamera = true;
+
+    if (mounted) {
+      setState(() {
+        _cameraStatus = _CameraStatus.initializing;
+      });
+    }
+
+    CameraController? controller;
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
+      await _cameraDisposal;
+      var permissionDecision = await _resolveCameraPermission();
+      if (permissionDecision == _CameraPermissionDecision.needsRequest &&
+          requestPermission) {
+        final status = await Permission.camera.request();
+        permissionDecision = status.isGranted
+            ? _CameraPermissionDecision.granted
+            : _CameraPermissionDecision.needsRequest;
+        _cameraPermissionRequiresSettings = !status.isGranted;
+      }
+      if (permissionDecision != _CameraPermissionDecision.granted) {
+        if (!mounted) return;
         setState(() {
-          _isCameraAvailable = false;
+          _cameraPermissionNeeded = true;
+          _cameraStatus = _CameraStatus.error;
         });
         return;
       }
 
-      final firstCamera = cameras.first;
-      final controller = CameraController(
-        firstCamera,
+      _cameraPermissionNeeded = false;
+      _cameraPermissionRequiresSettings = false;
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _cameraStatus = _CameraStatus.unavailable;
+        });
+        return;
+      }
+
+      controller = CameraController(
+        cameras.first,
         ResolutionPreset.veryHigh,
       );
-
       _cameraController = controller;
-      _initializeControllerFuture = controller.initialize();
+      await controller.initialize().timeout(const Duration(seconds: 15));
 
+      if (!mounted || _cameraController != controller) {
+        await controller.dispose();
+        return;
+      }
       setState(() {
-        _isCameraAvailable = true;
+        _cameraStatus = _CameraStatus.ready;
       });
-    } catch (e) {
+    } catch (error) {
+      debugPrint('Error initializing camera: $error');
+      _cameraPermissionNeeded = false;
+      if (_cameraController == controller) {
+        _cameraController = null;
+      }
+      await controller?.dispose();
+      if (!mounted) return;
       setState(() {
-        _isCameraAvailable = false;
+        _cameraStatus = _CameraStatus.error;
       });
+    } finally {
+      _isInitializingCamera = false;
+    }
+  }
+
+  Future<_CameraPermissionDecision> _resolveCameraPermission() async {
+    if (kIsWeb || !Platform.isAndroid) {
+      return _CameraPermissionDecision.granted;
+    }
+
+    var status = await Permission.camera.status;
+    if (status.isGranted) {
+      return _CameraPermissionDecision.granted;
+    }
+    return _CameraPermissionDecision.needsRequest;
+  }
+
+  Future<void> _openCameraSettings() async {
+    _waitingForPermissionSettings = await openAppSettings();
+  }
+
+  Future<void> _disposeCamera() async {
+    final controller = _cameraController;
+    _cameraController = null;
+    try {
+      await controller?.dispose();
+    } catch (error) {
+      debugPrint('Error disposing camera: $error');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _waitingForPermissionSettings) {
+      _waitingForPermissionSettings = false;
+      unawaited(_initializeCamera());
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed && _cameraWasDisposedForLifecycle) {
+      _cameraWasDisposedForLifecycle = false;
+      unawaited(_initializeCamera());
+      return;
+    }
+
+    final controller = _cameraController;
+    if (state == AppLifecycleState.inactive &&
+        controller != null &&
+        controller.value.isInitialized) {
+      _cameraWasDisposedForLifecycle = true;
+      if (mounted) {
+        setState(() {
+          _cameraStatus = _CameraStatus.initializing;
+        });
+      }
+      _cameraDisposal = _disposeCamera();
     }
   }
 
   @override
   void dispose() {
-    // Dispose of the controller when the widget is disposed.
-    _cameraController?.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_disposeCamera());
     _plantNameController.dispose();
     super.dispose();
   }
 
-  Future<XFile?> _takePicture() async {
-    if (!_isCameraAvailable || _cameraController == null) {
-      return null;
-    }
+  Future<void> _captureAndAddPlant(PlantService store) async {
+    final controller = _cameraController;
+    if (_cameraStatus != _CameraStatus.ready || controller == null) return;
 
+    setState(() {
+      _cameraStatus = _CameraStatus.capturing;
+    });
     try {
-      await _initializeControllerFuture;
-      final XFile file = await _cameraController!.takePicture();
-      return file;
-    } catch (e) {
-      debugPrint('Error taking picture: $e');
-      return null;
+      final imageFile = await controller.takePicture();
+      if (!mounted) return;
+
+      final plant = _createPlant();
+      final pictureSave = PlantPictureStorage.save(
+        plantId: plant.id,
+        pictureBytes: imageFile.readAsBytes(),
+      );
+      unawaited(store.add(plant, pictureSave: pictureSave));
+
+      await _disposeCamera();
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      debugPrint('Error taking picture: $error');
+      if (!mounted) return;
+      setState(() {
+        _cameraStatus = _cameraController == null
+            ? _CameraStatus.error
+            : _CameraStatus.ready;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not take the picture. Try again.')),
+      );
     }
+  }
+
+  PlantData _createPlant() {
+    return PlantData(
+      name: _plantNameController.text,
+      waterLevel: 0,
+      wateringInterval: _currentWateringIntervalSliderValue,
+    );
+  }
+
+  void _addPlantWithoutPhoto(PlantService store) {
+    unawaited(store.add(_createPlant()));
+    Navigator.pop(context);
   }
 
   @override
@@ -123,81 +268,106 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
                 });
               }),
           const SizedBox(height: 24.0),
-          Expanded(
-              child: _isCameraAvailable
-                  ? _buildCameraView()
-                  : _buildNoCameraView()),
+          Expanded(child: _buildCameraView(store)),
         ],
       ),
-      floatingActionButton: SizedBox(
-        height: 70,
-        width: 70,
-        child: FittedBox(
-          child: FloatingActionButton(
-            onPressed: () async {
-              // Take the Picture in a try / catch block. If anything goes wrong,
-              // catch the error.
-              try {
-                final XFile? imageFile = await _takePicture();
+      floatingActionButton: _cameraStatus == _CameraStatus.ready
+          ? SizedBox(
+              height: 70,
+              width: 70,
+              child: FittedBox(
+                child: FloatingActionButton(
+                  onPressed: () => _captureAndAddPlant(store),
+                  child: const Icon(Icons.camera_alt),
+                ),
+              ),
+            )
+          : null,
+    );
+  }
 
-                if (!context.mounted) return;
-
-                // Create and Store new plant
-                final plant = PlantData(
-                    name: _plantNameController.text,
-                    waterLevel: 0,
-                    wateringInterval: _currentWateringIntervalSliderValue);
-                final pictureSave = imageFile == null
-                    ? null
-                    : PlantPictureStorage.save(
-                        plantId: plant.id,
-                        pictureBytes: imageFile.readAsBytes(),
-                      );
-                unawaited(store.add(plant, pictureSave: pictureSave));
-
-                Navigator.pop(context);
-              } catch (e) {
-                // If an error occurs, log the error to the console.
-                // print(e);
-              }
-            },
-            child: const Icon(Icons.camera_alt),
+  Widget _buildCameraView(PlantService store) {
+    switch (_cameraStatus) {
+      case _CameraStatus.ready:
+        return CameraPreview(_cameraController!);
+      case _CameraStatus.initializing:
+        return const Center(child: CircularProgressIndicator());
+      case _CameraStatus.capturing:
+        return const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 12),
+              Text('Taking picture...'),
+            ],
           ),
-        ),
-      ),
-    );
+        );
+      case _CameraStatus.unavailable:
+        return _buildNoCameraView(store, canRetry: false);
+      case _CameraStatus.error:
+        return _buildNoCameraView(
+          store,
+          canRetry: !_cameraPermissionRequiresSettings,
+          canOpenSettings: _cameraPermissionRequiresSettings,
+          cameraPermissionNeeded: _cameraPermissionNeeded,
+        );
+    }
   }
 
-  Widget _buildCameraView() {
-    return FutureBuilder<void>(
-      future: _initializeControllerFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          // If the Future is complete, display the preview.
-          return CameraPreview(_cameraController!);
-        } else {
-          // Otherwise, display a loading indicator.
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
-    );
-  }
-
-  Widget _buildNoCameraView() {
+  Widget _buildNoCameraView(
+    PlantService store, {
+    required bool canRetry,
+    bool canOpenSettings = false,
+    bool cameraPermissionNeeded = false,
+  }) {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 16),
-          const Text(
-            'No camera available',
-            style: TextStyle(fontSize: 18),
+          const Icon(Icons.no_photography_outlined, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            canOpenSettings
+                ? 'Camera permission denied'
+                : cameraPermissionNeeded
+                    ? 'Camera permission required'
+                    : canRetry
+                        ? 'Camera access unavailable'
+                        : 'No camera available',
+            style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           const Text(
-            'You can still add a plant without a photo',
+            'The camera may be unavailable or permission may have been denied.\n'
+            'You can still add this plant without a photo.',
+            textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),
           ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => _addPlantWithoutPhoto(store),
+            icon: const Icon(Icons.add),
+            label: const Text('Add without photo'),
+          ),
+          if (canRetry) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => _initializeCamera(
+                requestPermission: cameraPermissionNeeded,
+              ),
+              child: Text(
+                cameraPermissionNeeded ? 'Use camera' : 'Retry camera',
+              ),
+            ),
+          ],
+          if (canOpenSettings) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _openCameraSettings,
+              child: const Text('Open app settings'),
+            ),
+          ],
         ],
       ),
     );

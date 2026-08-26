@@ -12,8 +12,19 @@ class PlantPictureStorage {
     final directory =
         destinationDirectory ?? await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/$plantId.jpg';
-    final file = File(filePath);
-    await file.writeAsBytes(await pictureBytes);
-    return filePath;
+    final temporaryFile = File('$filePath.tmp');
+    try {
+      final bytes = await pictureBytes;
+      if (bytes.isEmpty) {
+        throw StateError('Captured picture is empty');
+      }
+      await temporaryFile.writeAsBytes(bytes, flush: true);
+      return (await temporaryFile.rename(filePath)).path;
+    } catch (_) {
+      if (await temporaryFile.exists()) {
+        await temporaryFile.delete();
+      }
+      rethrow;
+    }
   }
 }

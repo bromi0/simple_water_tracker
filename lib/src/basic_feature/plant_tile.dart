@@ -43,18 +43,32 @@ class PlantTile extends StatelessWidget {
                   alignment: Alignment.center,
                   child: const CircularProgressIndicator(),
                 )
-              : plant.picturePath == null
+              : plant.didPictureSaveFail
                   ? Container(
                       width: double.infinity,
                       height: 90,
                       color: plant.color,
+                      alignment: Alignment.center,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.broken_image_outlined),
+                          Text('Photo save failed'),
+                        ],
+                      ),
                     )
-                  : Image.file(
-                      File(plant.picturePath!),
-                      width: double.infinity,
-                      height: 90,
-                      fit: BoxFit.cover,
-                    ),
+                  : plant.picturePath == null
+                      ? Container(
+                          width: double.infinity,
+                          height: 90,
+                          color: plant.color,
+                        )
+                      : Image.file(
+                          File(plant.picturePath!),
+                          width: double.infinity,
+                          height: 90,
+                          fit: BoxFit.cover,
+                        ),
           const Spacer(),
           Text('Water Level: ${plant.waterLevel}%'),
           const Spacer(),

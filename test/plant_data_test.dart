@@ -18,4 +18,17 @@ void main() {
     expect(plant.isPictureSaving, isFalse);
     expect(plant.picturePath, '/pictures/fern.jpg');
   });
+
+  test('should expose a failed picture save', () async {
+    final plant = PlantData(name: 'Fern', waterLevel: 0);
+    final savedPicturePath = Completer<String>();
+    final save = plant.attachPicture(savedPicturePath.future);
+
+    savedPicturePath.completeError(StateError('disk full'));
+
+    await expectLater(save, throwsStateError);
+    expect(plant.isPictureSaving, isFalse);
+    expect(plant.didPictureSaveFail, isTrue);
+    expect(plant.picturePath, isNull);
+  });
 }
