@@ -35,18 +35,26 @@ class PlantTile extends StatelessWidget {
         },
         child: Column(children: [
           Text(plant.name),
-          plant.picturePath == null
+          plant.isPictureSaving
               ? Container(
                   width: double.infinity,
                   height: 90,
                   color: plant.color,
+                  alignment: Alignment.center,
+                  child: const CircularProgressIndicator(),
                 )
-              : Image.file(
-                  File(plant.picturePath!),
-                  width: double.infinity,
-                  height: 90,
-                  fit: BoxFit.cover,
-                ),
+              : plant.picturePath == null
+                  ? Container(
+                      width: double.infinity,
+                      height: 90,
+                      color: plant.color,
+                    )
+                  : Image.file(
+                      File(plant.picturePath!),
+                      width: double.infinity,
+                      height: 90,
+                      fit: BoxFit.cover,
+                    ),
           const Spacer(),
           Text('Water Level: ${plant.waterLevel}%'),
           const Spacer(),

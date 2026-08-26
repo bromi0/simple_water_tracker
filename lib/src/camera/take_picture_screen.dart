@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'package:simple_water_tracker/src/helpers/plant_name_generator.dart';
 
+import '../services/plant_picture_storage.dart';
 import '../services/plant_service.dart';
 
 // A screen that allows users to take a picture using a given camera.
@@ -144,9 +146,14 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
                 final plant = PlantData(
                     name: _plantNameController.text,
                     waterLevel: 0,
-                    picture: imageFile,
                     wateringInterval: _currentWateringIntervalSliderValue);
-                store.add(plant);
+                final pictureSave = imageFile == null
+                    ? null
+                    : PlantPictureStorage.save(
+                        plantId: plant.id,
+                        pictureBytes: imageFile.readAsBytes(),
+                      );
+                unawaited(store.add(plant, pictureSave: pictureSave));
 
                 Navigator.pop(context);
               } catch (e) {

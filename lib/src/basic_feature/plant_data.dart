@@ -1,9 +1,5 @@
-import 'dart:io';
-
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 part 'plant_data.g.dart';
@@ -17,10 +13,7 @@ class PlantData {
     this.wateringInterval = 3,
     // we don't save it for now, will start when there is UI to change.
     this.wateringThreshold = 35,
-    XFile? picture,
-  }) : id = const Uuid().v4() {
-    savePictureToFile(picture);
-  }
+  }) : id = const Uuid().v4();
 
   final String id; // UUID
   @JsonKey(defaultValue: "Unknown")
@@ -33,6 +26,9 @@ class PlantData {
   @JsonKey(includeToJson: false)
   int wateringThreshold; // water level percentile when the notification is supposed to happen
   String? picturePath;
+  bool _isPictureSaving = false;
+
+  bool get isPictureSaving => _isPictureSaving;
 
   @JsonKey(includeToJson: true, includeFromJson: true)
   List<WateringRecord> _wateringHistory =
@@ -43,14 +39,13 @@ class PlantData {
 
   Map<String, dynamic> toJson() => _$PlantDataToJson(this);
 
-  Future<void> savePictureToFile(XFile? picture) async {
-    if (picture == null) return;
-
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/$id.jpg';
-    final file = File(filePath);
-    await file.writeAsBytes(await picture.readAsBytes());
-    picturePath = filePath;
+  Future<void> attachPicture(Future<String> savedPicturePath) async {
+    _isPictureSaving = true;
+    try {
+      picturePath = await savedPicturePath;
+    } finally {
+      _isPictureSaving = false;
+    }
   }
 
   void waterPlant() {

@@ -30,8 +30,19 @@ class PlantService extends ChangeNotifier {
 
   List<ExpectedWateringTime> wateringSchedule = [];
 
-  void add(PlantData plant) {
+  Future<void> add(PlantData plant, {Future<String>? pictureSave}) async {
+    final pictureAttachment =
+        pictureSave == null ? null : plant.attachPicture(pictureSave);
     _plants.add(plant);
+    notifyListeners();
+
+    try {
+      await pictureAttachment;
+    } catch (error) {
+      debugPrint('Could not save plant picture: $error');
+    }
+
+    await _savePlantData();
     notifyListeners();
   }
 
