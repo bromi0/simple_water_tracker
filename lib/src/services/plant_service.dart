@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -8,6 +9,17 @@ class ExpectedWateringTime {
   ExpectedWateringTime({required this.plant, required this.scheduledDateTime});
   final PlantData plant;
   final DateTime scheduledDateTime;
+}
+
+/// A persisted plant change that requires its platform reminder slots to be
+/// rebuilt. It deliberately contains no notification-platform details.
+class PlantReminderChange {
+  const PlantReminderChange.updated(this.plantId) : isRemoved = false;
+
+  const PlantReminderChange.removed(this.plantId) : isRemoved = true;
+
+  final String plantId;
+  final bool isRemoved;
 }
 
 class PlantService extends ChangeNotifier {
@@ -33,12 +45,17 @@ class PlantService extends ChangeNotifier {
   // Derived application state only; platform notification state lives in the
   // reminder coordinator and NotificationService.
   final List<ExpectedWateringTime> wateringSchedule = [];
+  final _reminderChanges = StreamController<PlantReminderChange>.broadcast();
+
+  Stream<PlantReminderChange> get reminderChanges => _reminderChanges.stream;
 
   Future<void> add(PlantData plant, {Future<String>? pictureSave}) async {
     final pictureAttachment = pictureSave == null
         ? null
         : plant.attachPicture(pictureSave);
     _plants.add(plant);
+    await _savePlantData();
+    _reminderChanges.add(PlantReminderChange.updated(plant.id));
     notifyListeners();
 
     try {
@@ -46,26 +63,31 @@ class PlantService extends ChangeNotifier {
     } catch (error) {
       debugPrint('Could not save plant picture: $error');
     }
-
+    // Picture persistence does not alter watering state, but its path still
+    // needs to be saved after the asynchronous copy finishes.
     await _savePlantData();
     notifyListeners();
   }
 
   Future<void> remove(PlantData plant) async {
+    final plantId = plant.id;
     _plants.remove(plant);
     await _savePlantData();
+    _reminderChanges.add(PlantReminderChange.removed(plantId));
     notifyListeners();
   }
 
   Future<void> waterPlant(PlantData plant) async {
     plant.waterPlant();
     await _savePlantData();
+    _reminderChanges.add(PlantReminderChange.updated(plant.id));
     notifyListeners();
   }
 
   Future<void> undoWaterPlant(PlantData plant) async {
     plant.undoWatering();
     await _savePlantData();
+    _reminderChanges.add(PlantReminderChange.updated(plant.id));
     notifyListeners();
   }
 
@@ -77,6 +99,7 @@ class PlantService extends ChangeNotifier {
     plant.name = name;
     plant.wateringInterval = wateringInterval;
     await _savePlantData();
+    _reminderChanges.add(PlantReminderChange.updated(plant.id));
     notifyListeners();
   }
 
@@ -110,7 +133,16 @@ class PlantService extends ChangeNotifier {
   Future<void> refreshReminders() async {
     await loaded;
     updateStoreState();
+    for (final plant in _plants) {
+      _reminderChanges.add(PlantReminderChange.updated(plant.id));
+    }
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_reminderChanges.close());
+    super.dispose();
   }
 
   Future<void> _savePlantData() async {

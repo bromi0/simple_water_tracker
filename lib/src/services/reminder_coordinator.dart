@@ -1,150 +1,132 @@
 import 'dart:async';
-import 'dart:convert';
-
-import 'package:flutter/widgets.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'notification_service.dart';
 import 'plant_service.dart';
 import 'reminder_delivery_policy.dart';
 
-/// Connects derived plant reminders to platform notifications according to
-/// application lifecycle. PlantService intentionally remains platform-agnostic.
-class ReminderCoordinator with WidgetsBindingObserver {
+/// Connects domain-level plant changes to the platform notification service.
+///
+/// Reminders are scheduled when plant state is saved, not when the application
+/// moves between foreground and background states.
+class ReminderCoordinator {
   ReminderCoordinator({
     required this.plantService,
     this.policy = const ReminderDeliveryPolicy(),
-  });
-
-  static const _attemptsKey = 'watering_reminder_attempts';
+    Future<void> Function()? initializeNotifications,
+    Future<void> Function(String, List<WateringNotification>)?
+    schedulePlantNotifications,
+    Future<void> Function(String, List<WateringNotification>)?
+    replacePlantNotifications,
+    Future<void> Function(String)? cancelPlantNotifications,
+  }) : _initializeNotifications =
+           initializeNotifications ??
+           NotificationService.initializeNotifications,
+       _replacePlantNotifications =
+           replacePlantNotifications ??
+           NotificationService.replaceWateringNotificationsForPlant,
+       _schedulePlantNotifications =
+           schedulePlantNotifications ??
+           NotificationService.scheduleWateringNotificationsForPlant,
+       _cancelPlantNotifications =
+           cancelPlantNotifications ??
+           NotificationService.cancelWateringNotificationsForPlant;
 
   final PlantService plantService;
   final ReminderDeliveryPolicy policy;
-  bool _isForeground = true;
+  final Future<void> Function() _initializeNotifications;
+  final Future<void> Function(String, List<WateringNotification>)
+  _replacePlantNotifications;
+  final Future<void> Function(String, List<WateringNotification>)
+  _schedulePlantNotifications;
+  final Future<void> Function(String) _cancelPlantNotifications;
+
+  StreamSubscription<PlantReminderChange>? _plantChangeSubscription;
   bool _started = false;
+  bool _ready = false;
 
   Future<void> start() async {
     if (_started) return;
     _started = true;
-    WidgetsBinding.instance.addObserver(this);
-    plantService.addListener(_plantStateChanged);
-    await NotificationService.initializeNotifications();
+    _plantChangeSubscription = plantService.reminderChanges.listen(
+      _plantReminderChanged,
+    );
+
+    await _initializeNotifications();
     await plantService.loaded;
-    await _returnToForeground();
+    _ready = true;
+    await _syncAllPlants();
   }
 
   void dispose() {
-    if (!_started) return;
-    WidgetsBinding.instance.removeObserver(this);
-    plantService.removeListener(_plantStateChanged);
+    _ready = false;
+    unawaited(_plantChangeSubscription?.cancel());
+    _plantChangeSubscription = null;
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        _isForeground = true;
-        unawaited(_returnToForeground());
-      case AppLifecycleState.paused:
-      case AppLifecycleState.hidden:
-      case AppLifecycleState.detached:
-        if (_isForeground) {
-          _isForeground = false;
-          unawaited(_scheduleForBackground());
-        }
-      case AppLifecycleState.inactive:
-        // Permission dialogs and other temporary interruptions can report
-        // inactive without the user actually leaving the app.
-        break;
-    }
-  }
-
-  void _plantStateChanged() {
-    if (!_isForeground) unawaited(_scheduleForBackground());
-  }
-
-  Future<void> _scheduleForBackground() async {
-    await plantService.loaded;
-    plantService.updateStoreState();
-
-    final now = DateTime.now();
-    final attempts = await _loadAttempts();
-    final notifications = <WateringNotification>[];
-    final overduePlantIds = <String>{};
-
-    for (final reminder in plantService.wateringSchedule) {
-      final lastAttempt = attempts[reminder.plant.id];
-      final deliveryTime = policy.deliveryTime(
-        reminderTime: reminder.scheduledDateTime,
-        now: now,
-        lastAttempt: lastAttempt,
-      );
-      if (deliveryTime == null) continue;
-
-      notifications.add(
-        WateringNotification(
-          plantId: reminder.plant.id,
-          deliveryTime: deliveryTime,
-          title: reminder.plant.name,
-          body: '${reminder.plant.name}: Water me please...',
-        ),
-      );
-      if (!reminder.scheduledDateTime.isAfter(now)) {
-        overduePlantIds.add(reminder.plant.id);
-      }
-    }
-
-    if (_isForeground) return;
-    final scheduledPlantIds =
-        await NotificationService.replaceWateringNotifications(notifications);
-    // Scheduling crosses platform and preferences boundaries. The user may
-    // have resumed while those awaits were running, so enforce foreground
-    // cancellation again before recording an attempt.
-    if (_isForeground) {
-      await NotificationService.cancelWateringNotifications();
+  void _plantReminderChanged(PlantReminderChange change) {
+    if (!_ready) return;
+    if (change.isRemoved) {
+      unawaited(_cancelPlantNotifications(change.plantId));
       return;
     }
-    for (final plantId in scheduledPlantIds.intersection(overduePlantIds)) {
-      // Store intended delivery, not background time. Returning during the
-      // grace period can then remove an attempt that never reached the user.
-      attempts[plantId] = notifications
-          .firstWhere((notification) => notification.plantId == plantId)
-          .deliveryTime;
+    unawaited(_syncPlant(change.plantId));
+  }
+
+  Future<void> _syncAllPlants() async {
+    plantService.updateStoreState();
+    for (final plant in plantService.plants) {
+      await _syncPlant(
+        plant.id,
+        refreshStoreState: false,
+        replaceExisting: false,
+      );
     }
-    await _saveAttempts(attempts);
   }
 
-  Future<void> _returnToForeground() async {
-    await NotificationService.cancelWateringNotifications();
-    final attempts = await _loadAttempts();
-    final now = DateTime.now();
-    attempts.removeWhere(
-      // Future timestamps are overdue notifications cancelled during their
-      // exit grace period; they must not consume the retry cooldown.
-      (_, attemptedDelivery) => attemptedDelivery.isAfter(now),
+  Future<void> _syncPlant(
+    String plantId, {
+    bool refreshStoreState = true,
+    bool replaceExisting = true,
+  }) async {
+    if (refreshStoreState) plantService.updateStoreState();
+
+    ExpectedWateringTime? reminder;
+    for (final candidate in plantService.wateringSchedule) {
+      if (candidate.plant.id == plantId) {
+        reminder = candidate;
+        break;
+      }
+    }
+    if (reminder == null) {
+      await _cancelPlantNotifications(plantId);
+      return;
+    }
+
+    final initialDeliveryTime = policy.initialDeliveryTime(
+      reminderTime: reminder.scheduledDateTime,
+      now: DateTime.now(),
     );
-    await _saveAttempts(attempts);
-  }
-
-  Future<Map<String, DateTime>> _loadAttempts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = prefs.getString(_attemptsKey);
-    if (encoded == null) return {};
-    final values = jsonDecode(encoded) as Map<String, dynamic>;
-    return values.map(
-      (id, value) => MapEntry(id, DateTime.parse(value as String)),
-    );
-  }
-
-  Future<void> _saveAttempts(Map<String, DateTime> attempts) async {
-    final activePlantIds = plantService.plants.map((plant) => plant.id).toSet();
-    attempts.removeWhere((plantId, _) => !activePlantIds.contains(plantId));
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _attemptsKey,
-      jsonEncode(
-        attempts.map((id, time) => MapEntry(id, time.toIso8601String())),
+    final notifications = [
+      WateringNotification(
+        plantId: plantId,
+        slot: WateringNotificationSlot.initial,
+        deliveryTime: initialDeliveryTime,
+        title: reminder.plant.name,
+        body: '${reminder.plant.name}: Water me please...',
+        timeoutAfter: policy.retryDelay,
       ),
-    );
+      WateringNotification(
+        plantId: plantId,
+        slot: WateringNotificationSlot.retry,
+        deliveryTime: policy.retryDeliveryTime(initialDeliveryTime),
+        title: reminder.plant.name,
+        body: '${reminder.plant.name}: Water me please...',
+      ),
+    ];
+    if (replaceExisting) {
+      await _replacePlantNotifications(plantId, notifications);
+    } else {
+      await _schedulePlantNotifications(plantId, notifications);
+    }
   }
 }
