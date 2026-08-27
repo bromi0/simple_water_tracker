@@ -1,16 +1,14 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:flutter/services.dart';
 import 'src/app.dart';
+import 'src/services/notification_service.dart';
+import 'src/services/package_replacement_recovery.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+const _notificationRecoveryChannel = MethodChannel(
+  'com.bromiapps.simplywaterplant/notification_recovery',
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +16,13 @@ void main() async {
   // final cameras = await availableCameras();
   // final firstCamera = cameras.first;
 
-  await initNotifications();
+  await NotificationService.configurePlatformNotifications();
 
   // Set up the SettingsController, which will glue user settings to multiple
   // Flutter Widgets.
-  final settingsController =
-      SettingsController(await SettingsService.loadFromPrefs());
+  final settingsController = SettingsController(
+    await SettingsService.loadFromPrefs(),
+  );
 
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.
@@ -32,51 +31,42 @@ void main() async {
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the
   // SettingsView.
-  runApp(SimplyWaterPlantApp(
-    settingsController: settingsController,
-    // mainCamera: firstCamera,
-  ));
-}
-
-Future<void> initNotifications() async {
-  // Platform delivery is currently configured only for Android. The newer
-  // plugin has an endorsed web implementation, but enabling it requires a
-  // separate service-worker and permission UX decision.
-  if (kIsWeb || !Platform.isAndroid) return;
-
-  // Timezone needed for scheduled notifications
-  await _configureLocalTimeZone();
-  const initializationSettingsAndroid =
-      AndroidInitializationSettings('notification_icon');
-  const initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-  );
-  await flutterLocalNotificationsPlugin.initialize(
-    settings: initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) {
-      switch (notificationResponse.notificationResponseType) {
-        case NotificationResponseType.selectedNotification:
-          //selectNotificationStream.add(notificationResponse.payload);
-          break;
-        case NotificationResponseType.selectedNotificationAction:
-//           if (notificationResponse.actionId == navigationActionId) {
-//             selectNotificationStream.add(notificationResponse.payload);
-//           }
-          break;
-        case NotificationResponseType.notificationDismissed:
-          // Dismissal is neutral: only watering a plant changes its state.
-          break;
-      }
-    },
-    //onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+  runApp(
+    SimplyWaterPlantApp(
+      settingsController: settingsController,
+      // mainCamera: firstCamera,
+    ),
   );
 }
 
-Future<void> _configureLocalTimeZone() async {
-  if (kIsWeb || Platform.isLinux) {
-    return;
+/// Rebuilds watering reminders after Android removes posted notifications
+/// while replacing the package. Android starts this entry point in a headless
+/// Flutter engine; it never creates the application widget tree.
+@pragma('vm:entry-point')
+Future<void> notificationRecoveryMain() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  Object? failure;
+  StackTrace? failureStack;
+  try {
+    await restoreWateringRemindersAfterPackageReplacement();
+  } catch (error, stackTrace) {
+    failure = error;
+    failureStack = stackTrace;
+    debugPrint('Package replacement reminder recovery failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
   }
-  tz.initializeTimeZones();
-  final timeZone = await FlutterTimezone.getLocalTimezone();
-  tz.setLocalLocation(tz.getLocation(timeZone.identifier));
+
+  try {
+    await _notificationRecoveryChannel.invokeMethod<void>('complete', {
+      'success': failure == null,
+      if (failure != null) 'error': failure.toString(),
+      if (failureStack != null) 'stackTrace': failureStack.toString(),
+    });
+  } catch (error, stackTrace) {
+    // The native receiver may have timed out. There is no UI isolate to report
+    // through, so leave a diagnostic in logcat and allow this isolate to end.
+    debugPrint('Could not report reminder recovery completion: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 }

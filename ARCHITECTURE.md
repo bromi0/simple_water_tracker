@@ -38,18 +38,35 @@ same derived schedule; it does not calculate reminder dates independently.
 Reminder calculation and notification delivery are deliberately separate:
 
 1. `PlantService` derives each plant's reminder time from plant state.
-2. `ReminderCoordinator` observes plant changes and app lifecycle. On entering
-   the background it applies `ReminderDeliveryPolicy` (exit grace and overdue
-   retry cooldown) to derive delivery candidates.
+2. `ReminderCoordinator` observes persisted plant changes and applies
+   `ReminderDeliveryPolicy` (overdue grace and retry cooldown) to derive
+   delivery candidates. Normal startup schedules stable reminder slots without
+   first clearing an already-visible notification.
 3. `NotificationService` owns the OS boundary: permission checks, scheduling,
-   cancellation, and persistence of scheduled notification IDs.
-4. Returning to the foreground cancels watering notifications. Dismissing a
-   notification never changes plant state. The schedule screen's short-delay
-   test notification is intentionally outside the watering-reminder set.
+   cancellation, timezone setup, and plugin initialization.
+4. Watering, editing, undoing, or removing a plant replaces or cancels only
+   that plant's reminder slots. Dismissing a notification never changes plant
+   state. The schedule screen's short-delay test notification is intentionally
+   outside the watering-reminder set.
+
+Android removes already-posted notifications while replacing an application
+package. `NotificationRecoveryReceiver` handles `MY_PACKAGE_REPLACED` by
+starting a temporary headless Flutter engine. Its dedicated Dart entry point
+loads persisted plant state and runs the same `ReminderCoordinator` used by
+normal startup, so overdue reminders return after the delivery grace period
+without waiting for the user to open the app. The notification plugin's own
+replacement receiver remains responsible for cheaply restoring cached future
+alarms; stable notification IDs keep both recovery paths idempotent.
+
+Package replacement recovery must remain independent of widgets and an Android
+Activity, finish within the broadcast execution window, and derive reminders
+from plant state rather than persisting notification objects. This allows
+future quiet-hour, local-time, and grouping policies to participate in update
+recovery through the normal coordinator.
 
 `reminder_delivery_policy.dart` is the extension point for quiet hours,
-morning delivery, or grouping. Lifecycle and stale-notification safeguards are
-in `reminder_coordinator.dart`; platform-specific notification setup is in
+morning delivery, or grouping. Plant-change and stale-notification safeguards
+are in `reminder_coordinator.dart`; platform-specific notification setup is in
 `notification_service.dart` and Android manifest/build configuration.
 
 Timezone initialization happens before scheduling. Notification delivery is

@@ -1,14 +1,47 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:simple_water_tracker/main.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
-  // get static instance from package
-  static final _notifications = flutterLocalNotificationsPlugin;
+  static final _notifications = FlutterLocalNotificationsPlugin();
   static const _legacyWateringIdsKey = 'watering_notification_ids';
   static bool _notificationsEnabled = false;
+
+  /// Configures the platform plugin before any reminder reconciliation.
+  ///
+  /// This is deliberately independent of the widget tree so Android package
+  /// replacement recovery can run it in a headless Flutter engine.
+  static Future<void> configurePlatformNotifications() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+
+    tz_data.initializeTimeZones();
+    final timeZone = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZone.identifier));
+
+    const initializationSettings = InitializationSettings(
+      android: AndroidInitializationSettings('notification_icon'),
+    );
+    await _notifications.initialize(
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: _notificationResponseReceived,
+    );
+  }
+
+  static void _notificationResponseReceived(NotificationResponse response) {
+    switch (response.notificationResponseType) {
+      case NotificationResponseType.selectedNotification:
+      case NotificationResponseType.selectedNotificationAction:
+        break;
+      case NotificationResponseType.notificationDismissed:
+        // Dismissal is neutral: only watering a plant changes its state.
+        break;
+    }
+  }
 
   static Future<void> initializeNotifications() async {
     await _cancelLegacyWateringNotifications();
@@ -39,7 +72,7 @@ class NotificationService {
       android: androidNotificationDetails,
     );
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
+    await _notifications.zonedSchedule(
       id: id,
       title: title,
       body: body,
@@ -80,9 +113,7 @@ class NotificationService {
     String plantId,
   ) async {
     for (final slot in WateringNotificationSlot.values) {
-      await flutterLocalNotificationsPlugin.cancel(
-        id: _notificationId(plantId, slot),
-      );
+      await _notifications.cancel(id: _notificationId(plantId, slot));
     }
   }
 
@@ -90,7 +121,7 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     final ids = prefs.getStringList(_legacyWateringIdsKey) ?? const [];
     for (final id in ids) {
-      await flutterLocalNotificationsPlugin.cancel(id: int.parse(id));
+      await _notifications.cancel(id: int.parse(id));
     }
     await prefs.remove(_legacyWateringIdsKey);
   }
@@ -165,11 +196,11 @@ class NotificationService {
   }
 
   static Future<void> debugNotifications() async {
-    final List<ActiveNotification> activeNotifications =
-        await flutterLocalNotificationsPlugin.getActiveNotifications();
+    final List<ActiveNotification> activeNotifications = await _notifications
+        .getActiveNotifications();
     debugPrint('Active notifications: $activeNotifications');
     final List<PendingNotificationRequest> pendingNotifications =
-        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+        await _notifications.pendingNotificationRequests();
     debugPrint('Pending notifications: $pendingNotifications');
   }
 }
