@@ -12,8 +12,11 @@ class ExpectedWateringTime {
 
 class PlantService extends ChangeNotifier {
   PlantService() {
-    _loadPlantData();
+    loaded = _loadPlantData();
   }
+
+  // Coordinators can await persisted data without starting a second load.
+  late final Future<void> loaded;
 
   List<PlantData> _plants = [
     PlantData(name: 'Cactus', waterLevel: 80, color: Colors.green.shade400),
@@ -27,40 +30,53 @@ class PlantService extends ChangeNotifier {
 
   UnmodifiableListView<PlantData> get plants => UnmodifiableListView(_plants);
 
-  List<ExpectedWateringTime> wateringSchedule = [];
+  // Derived application state only; platform notification state lives in the
+  // reminder coordinator and NotificationService.
+  final List<ExpectedWateringTime> wateringSchedule = [];
 
-  void add(PlantData plant) {
+  Future<void> add(PlantData plant, {Future<String>? pictureSave}) async {
+    final pictureAttachment = pictureSave == null
+        ? null
+        : plant.attachPicture(pictureSave);
     _plants.add(plant);
+    notifyListeners();
+
+    try {
+      await pictureAttachment;
+    } catch (error) {
+      debugPrint('Could not save plant picture: $error');
+    }
+
+    await _savePlantData();
     notifyListeners();
   }
 
-  // here we make all init that plant is not supposed to know about
-  void addNew(PlantData plant) {
-    _plants.add(plant);
-    plant.waterPlant();
-  }
-
-  void remove(PlantData plant) {
+  Future<void> remove(PlantData plant) async {
     _plants.remove(plant);
+    await _savePlantData();
     notifyListeners();
   }
 
-  void waterPlant(PlantData plant) {
+  Future<void> waterPlant(PlantData plant) async {
     plant.waterPlant();
-    _savePlantData();
+    await _savePlantData();
     notifyListeners();
   }
 
-  void undoWaterPlant(PlantData plant) {
+  Future<void> undoWaterPlant(PlantData plant) async {
     plant.undoWatering();
-    _savePlantData();
+    await _savePlantData();
     notifyListeners();
   }
 
-  void updatePlant(PlantData plant, String name, int wateringInterval) {
+  Future<void> updatePlant(
+    PlantData plant,
+    String name,
+    int wateringInterval,
+  ) async {
     plant.name = name;
     plant.wateringInterval = wateringInterval;
-    _savePlantData();
+    await _savePlantData();
     notifyListeners();
   }
 
@@ -74,11 +90,14 @@ class PlantService extends ChangeNotifier {
     wateringSchedule.clear();
     for (var plant in _plants) {
       final expectedWatering = ExpectedWateringTime(
-          plant: plant, scheduledDateTime: plant.calculateWhenShouldWater());
+        plant: plant,
+        scheduledDateTime: plant.calculateWhenShouldWater(),
+      );
       wateringSchedule.add(expectedWatering);
     }
-    wateringSchedule
-        .sort((a, b) => a.scheduledDateTime.compareTo(b.scheduledDateTime));
+    wateringSchedule.sort(
+      (a, b) => a.scheduledDateTime.compareTo(b.scheduledDateTime),
+    );
   }
 
   final String dataKey = 'water_plant_data_key';
@@ -88,11 +107,18 @@ class PlantService extends ChangeNotifier {
     calculateWateringSchedule();
   }
 
+  Future<void> refreshReminders() async {
+    await loaded;
+    updateStoreState();
+    notifyListeners();
+  }
+
   Future<void> _savePlantData() async {
     updateStoreState();
     final prefs = await SharedPreferences.getInstance();
-    List<Map<String, dynamic>> jsonList =
-        _plants.map((plantData) => plantData.toJson()).toList();
+    List<Map<String, dynamic>> jsonList = _plants
+        .map((plantData) => plantData.toJson())
+        .toList();
 
     // Encode the list of JSON maps to a JSON string
     String jsonString = jsonEncode(jsonList);
@@ -108,6 +134,7 @@ class PlantService extends ChangeNotifier {
           .map((e) => PlantData.fromJson(e as Map<String, dynamic>))
           .toList();
       calculateWaterLevels();
+      calculateWateringSchedule();
       notifyListeners();
     }
   }

@@ -1,17 +1,29 @@
-import 'package:camera/camera.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 void main() async {
-  // Camera init
   WidgetsFlutterBinding.ensureInitialized();
-  final cameras = await availableCameras();
-  final firstCamera = cameras.first;
+  // Camera init
+  // final cameras = await availableCameras();
+  // final firstCamera = cameras.first;
+
+  await initNotifications();
+
   // Set up the SettingsController, which will glue user settings to multiple
   // Flutter Widgets.
-  final settingsController = SettingsController(SettingsService());
+  final settingsController =
+      SettingsController(await SettingsService.loadFromPrefs());
 
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.
@@ -22,6 +34,49 @@ void main() async {
   // SettingsView.
   runApp(SimplyWaterPlantApp(
     settingsController: settingsController,
-    mainCamera: firstCamera,
+    // mainCamera: firstCamera,
   ));
+}
+
+Future<void> initNotifications() async {
+  // Platform delivery is currently configured only for Android. The newer
+  // plugin has an endorsed web implementation, but enabling it requires a
+  // separate service-worker and permission UX decision.
+  if (kIsWeb || !Platform.isAndroid) return;
+
+  // Timezone needed for scheduled notifications
+  await _configureLocalTimeZone();
+  const initializationSettingsAndroid =
+      AndroidInitializationSettings('notification_icon');
+  const initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+  await flutterLocalNotificationsPlugin.initialize(
+    settings: initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) {
+      switch (notificationResponse.notificationResponseType) {
+        case NotificationResponseType.selectedNotification:
+          //selectNotificationStream.add(notificationResponse.payload);
+          break;
+        case NotificationResponseType.selectedNotificationAction:
+//           if (notificationResponse.actionId == navigationActionId) {
+//             selectNotificationStream.add(notificationResponse.payload);
+//           }
+          break;
+        case NotificationResponseType.notificationDismissed:
+          // Dismissal is neutral: only watering a plant changes its state.
+          break;
+      }
+    },
+    //onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+  );
+}
+
+Future<void> _configureLocalTimeZone() async {
+  if (kIsWeb || Platform.isLinux) {
+    return;
+  }
+  tz.initializeTimeZones();
+  final timeZone = await FlutterTimezone.getLocalTimezone();
+  tz.setLocalLocation(tz.getLocation(timeZone.identifier));
 }

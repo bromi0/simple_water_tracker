@@ -1,23 +1,47 @@
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/camera/take_picture_screen.dart';
+import 'package:simple_water_tracker/src/localization/app_localizations.dart';
 
 import 'basic_feature/sample_item_details_view.dart';
 import 'basic_feature/plant_list_view.dart';
+import 'basic_feature/reminder_schedule_view.dart';
 import 'services/plant_service.dart';
+import 'services/reminder_coordinator.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
 /// The Widget that configures your application.
-class SimplyWaterPlantApp extends StatelessWidget {
-  const SimplyWaterPlantApp(
-      {super.key, required this.settingsController, required this.mainCamera});
+class SimplyWaterPlantApp extends StatefulWidget {
+  const SimplyWaterPlantApp({super.key, required this.settingsController});
 
   final SettingsController settingsController;
-  final CameraDescription mainCamera;
+
+  @override
+  State<SimplyWaterPlantApp> createState() => _SimplyWaterPlantAppState();
+}
+
+class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
+  // These objects share the app lifecycle: the coordinator observes and
+  // schedules from the same PlantService instance exposed to the widgets.
+  late final PlantService _plantService;
+  late final ReminderCoordinator _reminderCoordinator;
+
+  @override
+  void initState() {
+    super.initState();
+    _plantService = PlantService();
+    _reminderCoordinator = ReminderCoordinator(plantService: _plantService);
+    _reminderCoordinator.start();
+  }
+
+  @override
+  void dispose() {
+    _reminderCoordinator.dispose();
+    _plantService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +50,11 @@ class SimplyWaterPlantApp extends StatelessWidget {
     // The ListenableBuilder Widget listens to the SettingsController for changes.
     // Whenever the user updates their settings, the MaterialApp is rebuilt.
     return ListenableBuilder(
-      listenable: settingsController,
+      listenable: widget.settingsController,
       builder: (BuildContext context, Widget? child) {
-        return ChangeNotifierProvider(
-          create: (context) => PlantService(),
+        return ChangeNotifierProvider.value(
+          // The state owns and disposes this existing instance.
+          value: _plantService,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             // Providing a restorationScopeId allows the Navigator built by the
@@ -64,7 +89,7 @@ class SimplyWaterPlantApp extends StatelessWidget {
             // SettingsController to display the correct theme.
             theme: ThemeData(),
             darkTheme: ThemeData.dark(),
-            themeMode: settingsController.themeMode,
+            themeMode: widget.settingsController.themeMode,
 
             // Define a function to handle named routes in order to support
             // Flutter web url navigation and deep linking.
@@ -74,11 +99,15 @@ class SimplyWaterPlantApp extends StatelessWidget {
                 builder: (BuildContext context) {
                   switch (routeSettings.name) {
                     case SettingsView.routeName:
-                      return SettingsView(controller: settingsController);
+                      return SettingsView(
+                        controller: widget.settingsController,
+                      );
+                    case ReminderScheduleView.routeName:
+                      return const ReminderScheduleView();
                     case SampleItemDetailsView.routeName:
                       return const SampleItemDetailsView();
                     case TakePictureScreen.routeName:
-                      return TakePictureScreen(camera: mainCamera);
+                      return const TakePictureScreen();
                     case PlantListView.routeName:
                     default:
                       return const PlantListView();

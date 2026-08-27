@@ -35,18 +35,40 @@ class PlantTile extends StatelessWidget {
         },
         child: Column(children: [
           Text(plant.name),
-          plant.picturePath == null
+          plant.isPictureSaving
               ? Container(
                   width: double.infinity,
                   height: 90,
                   color: plant.color,
+                  alignment: Alignment.center,
+                  child: const CircularProgressIndicator(),
                 )
-              : Image.file(
-                  File(plant.picturePath!),
-                  width: double.infinity,
-                  height: 90,
-                  fit: BoxFit.cover,
-                ),
+              : plant.didPictureSaveFail
+                  ? Container(
+                      width: double.infinity,
+                      height: 90,
+                      color: plant.color,
+                      alignment: Alignment.center,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.broken_image_outlined),
+                          Text('Photo save failed'),
+                        ],
+                      ),
+                    )
+                  : plant.picturePath == null
+                      ? Container(
+                          width: double.infinity,
+                          height: 90,
+                          color: plant.color,
+                        )
+                      : Image.file(
+                          File(plant.picturePath!),
+                          width: double.infinity,
+                          height: 90,
+                          fit: BoxFit.cover,
+                        ),
           const Spacer(),
           Text('Water Level: ${plant.waterLevel}%'),
           const Spacer(),
@@ -161,7 +183,7 @@ class _PlantEditorState extends State<PlantEditor> {
                 onPressed: _decrementInterval,
                 icon: const Icon(Icons.remove),
               ),
-              Text('Watering Interval: $_wateringInterval days'),
+              Text('Days between watering: $_wateringInterval'),
               IconButton(
                 onPressed: _incrementInterval,
                 icon: const Icon(Icons.add),

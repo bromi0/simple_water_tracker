@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/notification_service.dart';
+
 import 'settings_service.dart';
 
 /// A class that many Widgets can interact with to read user settings, update
@@ -20,6 +22,9 @@ class SettingsController with ChangeNotifier {
   // Allow Widgets to read the user's preferred ThemeMode.
   ThemeMode get themeMode => _themeMode;
 
+  Future<bool> get notificationsEnabled =>
+      NotificationService.isPermissionsGranted();
+
   /// Load the user's settings from the SettingsService. It may load from a
   /// local database or the internet. The controller only knows it can load the
   /// settings from the service.
@@ -33,13 +38,10 @@ class SettingsController with ChangeNotifier {
   /// Update and persist the ThemeMode based on the user's selection.
   Future<void> updateThemeMode(ThemeMode? newThemeMode) async {
     if (newThemeMode == null) return;
-
-    // Do not perform any work if new and old ThemeMode are identical
     if (newThemeMode == _themeMode) return;
 
-    // Otherwise, store the new ThemeMode in memory
+    // store the new ThemeMode in memory
     _themeMode = newThemeMode;
-
     // Important! Inform listeners a change has occurred.
     notifyListeners();
 
@@ -47,4 +49,7 @@ class SettingsController with ChangeNotifier {
     // SettingService.
     await _settingsService.updateThemeMode(newThemeMode);
   }
+
+  Future<bool> requestNotificationsPermission() =>
+      NotificationService.requestPermissions();
 }
