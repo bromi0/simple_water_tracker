@@ -1,37 +1,24 @@
-typedef ReminderTimeAdjustment = DateTime Function(DateTime proposedTime);
-
 class ReminderDeliveryPolicy {
   const ReminderDeliveryPolicy({
-    this.backgroundGrace = const Duration(minutes: 2),
-    this.retryCooldown = const Duration(minutes: 30),
-    this.adjustTime,
+    this.overdueDeliveryDelay = const Duration(minutes: 2),
+    this.retryDelay = const Duration(minutes: 30),
   });
 
-  final Duration backgroundGrace;
-  final Duration retryCooldown;
+  /// Gives an already-due plant a short delay so a newly saved state does not
+  /// interrupt the user immediately. Future reminders retain their calculated
+  /// watering time.
+  final Duration overdueDeliveryDelay;
 
-  /// Hook for a future quiet-hours policy. It may move a proposed delivery
-  /// forward, for example from nighttime to the next morning.
-  final ReminderTimeAdjustment? adjustTime;
+  /// The one follow-up reminder stays scheduled even if the first alert is
+  /// dismissed. A later plant state change replaces both notification slots.
+  final Duration retryDelay;
 
-  /// Returns null when an overdue reminder is still inside its retry cooldown.
-  /// Future reminders keep their calculated time; due reminders receive the
-  /// background grace period before any optional delivery-window adjustment.
-  DateTime? deliveryTime({
+  DateTime initialDeliveryTime({
     required DateTime reminderTime,
     required DateTime now,
-    DateTime? lastAttempt,
-  }) {
-    var proposedTime = reminderTime.isAfter(now)
-        ? reminderTime
-        : now.add(backgroundGrace);
+  }) =>
+      reminderTime.isAfter(now) ? reminderTime : now.add(overdueDeliveryDelay);
 
-    if (!reminderTime.isAfter(now) && lastAttempt != null) {
-      final retryAt = lastAttempt.add(retryCooldown);
-      if (retryAt.isAfter(proposedTime)) return null;
-    }
-
-    proposedTime = adjustTime?.call(proposedTime) ?? proposedTime;
-    return proposedTime.isBefore(now) ? now : proposedTime;
-  }
+  DateTime retryDeliveryTime(DateTime initialDeliveryTime) =>
+      initialDeliveryTime.add(retryDelay);
 }

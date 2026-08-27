@@ -35,6 +35,12 @@ class ReminderScheduleView extends StatelessWidget {
 
   Future<void> _scheduleTest(BuildContext context) async {
     final scheduled = await NotificationService.scheduleTestNotification();
+    if (scheduled) {
+      if (!context.mounted) return;
+      // The test action may have just granted notification permission. Rebuild
+      // the existing plant reminders now that platform delivery is available.
+      await context.read<PlantService>().refreshReminders();
+    }
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

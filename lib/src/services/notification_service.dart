@@ -7,11 +7,11 @@ import 'package:timezone/timezone.dart' as tz;
 class NotificationService {
   // get static instance from package
   static final _notifications = flutterLocalNotificationsPlugin;
-  static const _wateringIdsKey = 'watering_notification_ids';
+  static const _legacyWateringIdsKey = 'watering_notification_ids';
   static bool _notificationsEnabled = false;
-  static final Set<int> _wateringNotificationIds = {};
 
   static Future<void> initializeNotifications() async {
+    await _cancelLegacyWateringNotifications();
     _notificationsEnabled = await isPermissionsGranted();
   }
 
@@ -20,6 +20,7 @@ class NotificationService {
     required DateTime dt,
     String title = 'default title',
     String body = 'default body',
+    Duration? timeoutAfter,
   }) async {
     if (!_notificationsEnabled) return false;
     var futureDate = tz.TZDateTime.from(dt, tz.local);
@@ -27,13 +28,14 @@ class NotificationService {
       // print('Got date to schedule in the past: $futureDate');
       return false;
     }
-    const androidNotificationDetails = AndroidNotificationDetails(
+    final androidNotificationDetails = AndroidNotificationDetails(
       'mainChannel',
       'Water time notifications',
       channelDescription: 'The notifications reminding to water your plants.',
       importance: Importance.high,
+      timeoutAfter: timeoutAfter?.inMilliseconds,
     );
-    const notificationDetails = NotificationDetails(
+    final notificationDetails = NotificationDetails(
       android: androidNotificationDetails,
     );
 
@@ -48,51 +50,49 @@ class NotificationService {
     return true;
   }
 
-  static Future<Set<String>> replaceWateringNotifications(
+  static Future<void> replaceWateringNotificationsForPlant(
+    String plantId,
     List<WateringNotification> notifications,
   ) async {
-    // Accept the complete desired set. This boundary can later compose several
-    // plants into morning or room summaries without changing PlantService.
-    await cancelWateringNotifications();
-    if (!_notificationsEnabled) return {};
-    final scheduledPlantIds = <String>{};
+    await cancelWateringNotificationsForPlant(plantId);
+    await scheduleWateringNotificationsForPlant(plantId, notifications);
+  }
+
+  /// Updates a plant's pending alarm slots without clearing an active alert.
+  /// This is used on app start, when unchanged reminders should remain visible.
+  static Future<void> scheduleWateringNotificationsForPlant(
+    String plantId,
+    List<WateringNotification> notifications,
+  ) async {
+    if (!_notificationsEnabled) return;
     for (final note in notifications) {
-      final id = _notificationId(note.plantId);
-      final scheduled = await zonedScheduleNotification(
-        id: id,
+      await zonedScheduleNotification(
+        id: _notificationId(note.plantId, note.slot),
         dt: note.deliveryTime,
         title: note.title,
         body: note.body,
+        timeoutAfter: note.timeoutAfter,
       );
-      if (scheduled) {
-        _wateringNotificationIds.add(id);
-        scheduledPlantIds.add(note.plantId);
-      }
     }
-    await _saveWateringNotificationIds();
-    return scheduledPlantIds;
   }
 
-  static Future<void> cancelWateringNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Persist IDs because Android notifications outlive the Dart process. This
-    // also keeps the independent test notification outside bulk cancellation.
-    _wateringNotificationIds.addAll(
-      prefs.getStringList(_wateringIdsKey)?.map(int.parse) ?? const [],
-    );
-    for (final id in _wateringNotificationIds) {
-      await flutterLocalNotificationsPlugin.cancel(id: id);
+  static Future<void> cancelWateringNotificationsForPlant(
+    String plantId,
+  ) async {
+    for (final slot in WateringNotificationSlot.values) {
+      await flutterLocalNotificationsPlugin.cancel(
+        id: _notificationId(plantId, slot),
+      );
     }
-    _wateringNotificationIds.clear();
-    await prefs.remove(_wateringIdsKey);
   }
 
-  static Future<void> _saveWateringNotificationIds() async {
+  static Future<void> _cancelLegacyWateringNotifications() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      _wateringIdsKey,
-      _wateringNotificationIds.map((id) => id.toString()).toList(),
-    );
+    final ids = prefs.getStringList(_legacyWateringIdsKey) ?? const [];
+    for (final id in ids) {
+      await flutterLocalNotificationsPlugin.cancel(id: int.parse(id));
+    }
+    await prefs.remove(_legacyWateringIdsKey);
   }
 
   static Future<bool> isPermissionsGranted() async {
@@ -108,14 +108,15 @@ class NotificationService {
         false;
   }
 
-  static int _notificationId(String plantId) {
+  static int _notificationId(String plantId, WateringNotificationSlot slot) {
     // A stable plant ID gives the platform one replaceable notification slot
     // per plant instead of tying IDs to the current list order.
     var hash = 0;
     for (final codeUnit in plantId.codeUnits) {
       hash = 0x1fffffff & (hash * 31 + codeUnit);
     }
-    return hash;
+    if (slot == WateringNotificationSlot.initial) return hash;
+    return 0x1fffffff & (hash * 31 + slot.index);
   }
 
   static Future<bool> requestPermissions() async {
@@ -176,13 +177,19 @@ class NotificationService {
 class WateringNotification {
   const WateringNotification({
     required this.plantId,
+    required this.slot,
     required this.deliveryTime,
     required this.title,
     required this.body,
+    this.timeoutAfter,
   });
 
   final String plantId;
+  final WateringNotificationSlot slot;
   final DateTime deliveryTime;
   final String title;
   final String body;
+  final Duration? timeoutAfter;
 }
+
+enum WateringNotificationSlot { initial, retry }
