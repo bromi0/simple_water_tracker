@@ -60,7 +60,7 @@ class PlantData {
     if (waterLevel < 100) {
       _wateringHistory.add(
         WateringRecord(
-          timestamp: DateTime.now(),
+          timestamp: DateTime.now().toUtc(),
           previousWaterLevel: waterLevel,
         ),
       ); // Add current timestamp to wateringHistory
@@ -88,7 +88,7 @@ class PlantData {
   void undoWatering() {
     if (_wateringHistory.isNotEmpty) {
       final now = DateTime.now();
-      final lastTimestamp = _wateringHistory.last.timestamp;
+      final lastTimestamp = _wateringHistory.last.timestamp.toLocal();
       final todayDate = DateTime(now.year, now.month, now.day);
       final lastWateringRecordDate = DateTime(
         lastTimestamp.year,
@@ -110,7 +110,7 @@ class PlantData {
     // the water level should be updated because we don't run any background calculations
     updateWaterLevel();
     return calculator.calculate(
-      now: now ?? DateTime.now(),
+      now: (now ?? DateTime.now()).toUtc(),
       waterLevel: waterLevel,
       wateringIntervalDays: wateringInterval,
       wateringThreshold: wateringThreshold,
@@ -120,7 +120,10 @@ class PlantData {
 
 @JsonSerializable()
 class WateringRecord {
-  WateringRecord({required this.timestamp, required this.previousWaterLevel});
+  WateringRecord({
+    required DateTime timestamp,
+    required this.previousWaterLevel,
+  }) : timestamp = timestamp.toUtc();
 
   factory WateringRecord.fromJson(Map<String, dynamic> json) =>
       _$WateringRecordFromJson(json);

@@ -56,6 +56,18 @@ Timezone initialization happens before scheduling. Notification delivery is
 currently Android-only in application code; web continues to show the schedule
 but deliberately does not request or deliver local notifications.
 
+Watering events and derived reminder times are domain instants and must remain
+in UTC when stored or passed between services. User-facing calendar dates and
+times, including the watering schedule, convert those instants to the device's
+local time only at the presentation boundary. Android notification scheduling
+retains `flutter_timezone` so `flutter_local_notifications` can resolve the
+device's IANA timezone and apply its daylight-saving rules.
+
+Future delivery preferences such as "morning", "evening", or quiet hours are
+per-user local-time policies. They should derive a local delivery instant from
+the shared UTC plant state; neither a device timezone nor a scheduled OS
+notification should become canonical shared plant data.
+
 ## Camera and pictures
 
 `camera/take_picture_screen.dart` owns camera permission, controller lifecycle,

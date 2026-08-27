@@ -104,7 +104,7 @@ class ReminderCoordinator {
 
     final initialDeliveryTime = policy.initialDeliveryTime(
       reminderTime: reminder.scheduledDateTime,
-      now: DateTime.now(),
+      now: DateTime.now().toUtc(),
     );
     final notifications = [
       WateringNotification(

@@ -3,7 +3,7 @@ import 'package:simple_water_tracker/src/services/reminder_delivery_policy.dart'
 
 void main() {
   const policy = ReminderDeliveryPolicy();
-  final now = DateTime(2026, 8, 26, 12);
+  final now = DateTime.utc(2026, 8, 26, 12);
 
   test('keeps a future reminder at its calculated time', () {
     final reminder = now.add(const Duration(hours: 3));

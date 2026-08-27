@@ -66,7 +66,7 @@ class _ReminderCalendar extends StatelessWidget {
     final days = List.generate(7, (index) => today.add(Duration(days: index)));
     final grouped = <DateTime, List<ExpectedWateringTime>>{};
     for (final reminder in reminders) {
-      var day = _dateOnly(reminder.scheduledDateTime);
+      var day = _dateOnly(reminder.scheduledDateTime.toLocal());
       // Past reminders are still actionable, so present them in today's group
       // rather than creating sections for dates the user can no longer act on.
       if (day.isBefore(today)) day = today;
@@ -183,7 +183,7 @@ class _ReminderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDue = !reminder.scheduledDateTime.isAfter(now);
-    final time = reminder.scheduledDateTime;
+    final time = reminder.scheduledDateTime.toLocal();
     final timeLabel = isDue
         ? 'Needs attention'
         : '${time.hour.toString().padLeft(2, '0')}:'

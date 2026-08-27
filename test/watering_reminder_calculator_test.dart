@@ -3,7 +3,7 @@ import 'package:simple_water_tracker/src/services/watering_reminder_calculator.d
 
 void main() {
   const calculator = WateringReminderCalculator();
-  final now = DateTime(2026, 8, 26, 12);
+  final now = DateTime.utc(2026, 8, 26, 12);
 
   test(
     'full plant reaches a 35 percent threshold after 65 percent of interval',
@@ -15,7 +15,7 @@ void main() {
         wateringThreshold: 35,
       );
 
-      expect(reminder, DateTime(2026, 8, 29, 2, 24));
+      expect(reminder, DateTime.utc(2026, 8, 29, 2, 24));
     },
   );
 
@@ -29,7 +29,7 @@ void main() {
         wateringThreshold: 35,
       );
 
-      expect(reminder, DateTime(2026, 8, 26, 19, 12));
+      expect(reminder, DateTime.utc(2026, 8, 26, 19, 12));
     },
   );
 
