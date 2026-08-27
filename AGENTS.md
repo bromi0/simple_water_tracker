@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Application entry points are `lib/main.dart` and `lib/src/app.dart`. Feature code lives under `lib/src/`: `basic_feature/` contains plant list models and widgets, `camera/` handles photo capture, `services/` contains persistence and notification logic, `settings/` manages user preferences, and `localization/` contains ARB sources and generated localization classes. Tests live in `test/` and follow Flutter's unit and widget test patterns. Static images belong in `assets/images/`; declare new asset directories in `pubspec.yaml`. Platform-specific Android and web files are in `android/` and `web/`.
+Application entry points are `lib/main.dart` and `lib/src/app.dart`. Feature code lives under `lib/src/`: `basic_feature/` contains plant list models and widgets, `camera/` handles photo capture, `services/` contains persistence and notification logic, `settings/` manages user preferences, and `localization/` contains ARB sources and generated localization classes. Tests live in `test/` and follow Flutter's unit and widget test patterns. Static images belong in `assets/images/`; declare new asset directories in `pubspec.yaml`. Platform-specific Android and web files are in `android/` and `web/`. Read [ARCHITECTURE.md](ARCHITECTURE.md) for the domain boundaries and important control flows before cross-cutting changes.
 
 ## Build, Test, and Development Commands
 
