@@ -59,3 +59,14 @@ At the end of a task, summarize:
 - files changed and why;
 - validation commands run and their results;
 - any unresolved failures, risks, or follow-up work.
+
+## Android device testing
+
+A physical Android test device may be available through the Linux ADB installation.
+Check `adb devices` / `flutter devices` before device-dependent testing.
+
+When available, agents may install debug/profile builds, inspect logcat,
+launch/force-stop the app, and perform device-side diagnostics.
+
+Do not change device-wide settings, remove unrelated applications, erase data,
+or modify ADB pairing/debug authorization unless the task specifically requires it.
