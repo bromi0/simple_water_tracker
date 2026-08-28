@@ -7,28 +7,50 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../observability/app_observability.dart';
+
 class NotificationService {
   static final _notifications = FlutterLocalNotificationsPlugin();
   static const _legacyWateringIdsKey = 'watering_notification_ids';
   static bool _notificationsEnabled = false;
+  static Future<void>? _platformConfiguration;
 
   /// Configures the platform plugin before any reminder reconciliation.
   ///
   /// This is deliberately independent of the widget tree so Android package
   /// replacement recovery can run it in a headless Flutter engine.
-  static Future<void> configurePlatformNotifications() async {
+  static Future<void> configurePlatformNotifications() {
+    return _platformConfiguration ??= appPerformance.measure(
+      'startup.notifications.configure',
+      _configurePlatformNotifications,
+    );
+  }
+
+  static Future<void> _configurePlatformNotifications() async {
     if (kIsWeb || !Platform.isAndroid) return;
 
-    tz_data.initializeTimeZones();
-    final timeZone = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timeZone.identifier));
+    appPerformance.measureSync(
+      'startup.notifications.timezone_database',
+      tz_data.initializeTimeZones,
+    );
+    final timeZone = await appPerformance.measure(
+      'startup.notifications.device_timezone',
+      FlutterTimezone.getLocalTimezone,
+    );
+    appPerformance.measureSync(
+      'startup.notifications.set_timezone',
+      () => tz.setLocalLocation(tz.getLocation(timeZone.identifier)),
+    );
 
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('notification_icon'),
     );
-    await _notifications.initialize(
-      settings: initializationSettings,
-      onDidReceiveNotificationResponse: _notificationResponseReceived,
+    await appPerformance.measure(
+      'startup.notifications.plugin',
+      () => _notifications.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse: _notificationResponseReceived,
+      ),
     );
   }
 
@@ -44,6 +66,7 @@ class NotificationService {
   }
 
   static Future<void> initializeNotifications() async {
+    await configurePlatformNotifications();
     await _cancelLegacyWateringNotifications();
     _notificationsEnabled = await isPermissionsGranted();
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'notification_service.dart';
+import '../observability/app_observability.dart';
 import 'plant_service.dart';
 import 'reminder_delivery_policy.dart';
 
@@ -47,14 +48,22 @@ class ReminderCoordinator {
   Future<void> start() async {
     if (_started) return;
     _started = true;
-    _plantChangeSubscription = plantService.reminderChanges.listen(
-      _plantReminderChanged,
-    );
+    await appPerformance.measure('startup.reminders.ready', () async {
+      _plantChangeSubscription = plantService.reminderChanges.listen(
+        _plantReminderChanged,
+      );
 
-    await _initializeNotifications();
-    await plantService.loaded;
-    _ready = true;
-    await _syncAllPlants();
+      await appPerformance.measure(
+        'startup.reminders.initialize_delivery',
+        _initializeNotifications,
+      );
+      await plantService.loaded;
+      _ready = true;
+      await appPerformance.measure(
+        'startup.reminders.sync_plants',
+        _syncAllPlants,
+      );
+    });
   }
 
   void dispose() {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'src/app.dart';
+import 'src/observability/app_observability.dart';
 import 'src/services/notification_service.dart';
 import 'src/services/package_replacement_recovery.dart';
 import 'src/settings/settings_controller.dart';
@@ -11,7 +12,11 @@ const _notificationRecoveryChannel = MethodChannel(
 );
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final firstFrame = appPerformance.start('startup.first_frame');
+  appPerformance.measureSync(
+    'startup.flutter_binding',
+    WidgetsFlutterBinding.ensureInitialized,
+  );
   // Camera init
   // final cameras = await availableCameras();
   // final firstCamera = cameras.first;
@@ -21,12 +26,20 @@ void main() async {
   // Set up the SettingsController, which will glue user settings to multiple
   // Flutter Widgets.
   final settingsController = SettingsController(
-    await SettingsService.loadFromPrefs(),
+    await appPerformance.measure(
+      'startup.settings.load_preferences',
+      SettingsService.loadFromPrefs,
+    ),
   );
 
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.
-  await settingsController.loadSettings();
+  await appPerformance.measure(
+    'startup.settings.apply',
+    settingsController.loadSettings,
+  );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) => firstFrame.complete());
 
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 
+import '../observability/app_observability.dart';
+
 class ExpectedWateringTime {
   ExpectedWateringTime({required this.plant, required this.scheduledDateTime});
   final PlantData plant;
@@ -24,7 +26,7 @@ class PlantReminderChange {
 
 class PlantService extends ChangeNotifier {
   PlantService() {
-    loaded = _loadPlantData();
+    loaded = appPerformance.measure('startup.plants.load', _loadPlantData);
   }
 
   // Coordinators can await persisted data without starting a second load.

@@ -7,6 +7,7 @@ import 'package:simple_water_tracker/src/localization/app_localizations.dart';
 import 'basic_feature/sample_item_details_view.dart';
 import 'basic_feature/plant_list_view.dart';
 import 'basic_feature/reminder_schedule_view.dart';
+import 'observability/app_observability.dart';
 import 'services/plant_service.dart';
 import 'services/reminder_coordinator.dart';
 import 'settings/settings_controller.dart';
@@ -33,7 +34,20 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
     super.initState();
     _plantService = PlantService();
     _reminderCoordinator = ReminderCoordinator(plantService: _plantService);
-    _reminderCoordinator.start();
+    _startReminderCoordinator();
+  }
+
+  Future<void> _startReminderCoordinator() async {
+    try {
+      await _reminderCoordinator.start();
+    } catch (error, stackTrace) {
+      // Notification delivery must not take down an otherwise usable app.
+      appLogger.error(
+        'reminder_coordinator_start_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   @override

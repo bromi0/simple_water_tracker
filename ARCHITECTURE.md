@@ -73,6 +73,14 @@ Timezone initialization happens before scheduling. Notification delivery is
 currently Android-only in application code; web continues to show the schedule
 but deliberately does not request or deliver local notifications.
 
+## Observability
+
+`observability/app_observability.dart` provides structured debug/profile logs
+and matching Flutter timeline spans. Startup operation names use the
+`startup.` prefix. Logs must contain technical metadata only, never plant names,
+picture paths, or other user data. Release builds keep this local diagnostic
+logging disabled.
+
 Watering events and derived reminder times are domain instants and must remain
 in UTC when stored or passed between services. User-facing calendar dates and
 times, including the watering schedule, convert those instants to the device's
