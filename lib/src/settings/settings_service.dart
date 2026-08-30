@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'settings_service.g.dart';
 
+/// The two supported presentations of the main plant collection.
+enum PlantListLayout { rows, grid }
+
 /// A service that stores and retrieves user settings.
 ///
 /// By default, this class does not persist user settings. If you'd like to
@@ -17,13 +20,26 @@ class SettingsService {
   SettingsService();
   @JsonKey(includeFromJson: true, includeToJson: true)
   ThemeMode _themeMode = ThemeMode.system;
+  @JsonKey(
+    includeFromJson: true,
+    includeToJson: true,
+    defaultValue: PlantListLayout.rows,
+  )
+  PlantListLayout _plantListLayout = PlantListLayout.rows;
 
   Future<ThemeMode> themeMode() async => _themeMode;
+
+  Future<PlantListLayout> plantListLayout() async => _plantListLayout;
 
   /// Persists the user's preferred ThemeMode to local or remote storage.
   Future<void> updateThemeMode(ThemeMode theme) async {
     _themeMode = theme;
     _saveSettingsData();
+  }
+
+  Future<void> updatePlantListLayout(PlantListLayout layout) async {
+    _plantListLayout = layout;
+    await _saveSettingsData();
   }
 
   factory SettingsService.fromJson(Map<String, dynamic> json) =>

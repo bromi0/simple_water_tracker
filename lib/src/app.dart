@@ -124,7 +124,9 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
                       return const TakePictureScreen();
                     case PlantListView.routeName:
                     default:
-                      return const PlantListView();
+                      return PlantListView(
+                        settingsController: widget.settingsController,
+                      );
                   }
                 },
               );
