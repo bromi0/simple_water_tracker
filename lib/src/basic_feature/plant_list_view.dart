@@ -18,8 +18,7 @@ class PlantListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Inputs live in a modal sheet that handles its own keyboard insets.
-      // Keep the collection's viewport stable behind it during IME animations.
+      // Keep the collection's viewport stable during route transitions.
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Plants'),

@@ -6,9 +6,11 @@ import 'package:simple_water_tracker/src/localization/app_localizations.dart';
 
 import 'basic_feature/sample_item_details_view.dart';
 import 'basic_feature/plant_list_view.dart';
+import 'basic_feature/plant_editor_screen.dart';
 import 'basic_feature/reminder_schedule_view.dart';
 import 'observability/app_observability.dart';
 import 'services/plant_service.dart';
+import 'services/plant_photo_picker.dart';
 import 'services/reminder_coordinator.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
@@ -28,6 +30,7 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
   // schedules from the same PlantService instance exposed to the widgets.
   late final PlantService _plantService;
   late final ReminderCoordinator _reminderCoordinator;
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -35,6 +38,35 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
     _plantService = PlantService();
     _reminderCoordinator = ReminderCoordinator(plantService: _plantService);
     _startReminderCoordinator();
+    _recoverPickedPhoto();
+  }
+
+  Future<void> _recoverPickedPhoto() async {
+    await _plantService.loaded;
+    try {
+      final recovered = await PlantPhotoPicker().recover();
+      if (recovered == null) return;
+      final plant = _plantService.plantById(recovered.plantId);
+      if (plant == null || !mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigatorKey.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => PlantEditorScreen(
+              plant: plant,
+              initialName: recovered.name,
+              initialInterval: recovered.interval,
+              initialPhotoBytes: recovered.bytes,
+            ),
+          ),
+        );
+      });
+    } catch (error, stackTrace) {
+      appLogger.error(
+        'plant_photo_recovery_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> _startReminderCoordinator() async {
@@ -70,6 +102,7 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
           // The state owns and disposes this existing instance.
           value: _plantService,
           child: MaterialApp(
+            navigatorKey: _navigatorKey,
             debugShowCheckedModeBanner: false,
             // Providing a restorationScopeId allows the Navigator built by the
             // MaterialApp to restore the navigation stack when a user leaves and

@@ -1,137 +1,109 @@
+import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/plant_service.dart';
 import 'plant_data.dart';
+import 'plant_editor_screen.dart';
 
 /// Selects the visual composition used for an individual plant.
 enum PlantTileLayout { row, grid }
 
-/// Identifies secondary actions exposed by a plant's overflow menu.
-enum _PlantMenuAction { undo, edit, delete }
-
 /// Owns shared plant behavior and delegates rendering to the selected layout.
-class PlantTile extends StatelessWidget {
+class PlantTile extends StatefulWidget {
   const PlantTile({super.key, required this.plant, required this.layout});
 
   final PlantData plant;
   final PlantTileLayout layout;
 
   @override
+  State<PlantTile> createState() => _PlantTileState();
+}
+
+class _PlantTileState extends State<PlantTile> {
+  Timer? _undoTimer;
+  bool _showUndo = false;
+  DateTime? _undoForWatering;
+
+  PlantData get plant => widget.plant;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleUndoExpiry();
+  }
+
+  @override
+  void didUpdateWidget(PlantTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.plant.id != plant.id ||
+        _undoForWatering != plant.lastWateringTimestamp) {
+      _scheduleUndoExpiry();
+    }
+  }
+
+  @override
+  void dispose() {
+    _undoTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final status = _PlantStatus.forPlant(context, plant);
-    return switch (layout) {
+    return switch (widget.layout) {
       PlantTileLayout.row => _PlantRow(
         key: ValueKey('plant-row-${plant.id}'),
         plant: plant,
         status: status,
-        onWater: () => _waterPlant(context),
-        onEdit: () => _showEditor(context),
-        onMenuSelected: (action) => _handleMenuAction(context, action),
+        isUndo: _showUndo,
+        onWaterOrUndo: () => _waterOrUndo(context),
+        onEdit: () => _openEditor(context),
       ),
       PlantTileLayout.grid => _PlantGridCard(
         key: ValueKey('plant-grid-${plant.id}'),
         plant: plant,
         status: status,
-        onWater: () => _waterPlant(context),
-        onEdit: () => _showEditor(context),
-        onMenuSelected: (action) => _handleMenuAction(context, action),
+        isUndo: _showUndo,
+        onWaterOrUndo: () => _waterOrUndo(context),
+        onEdit: () => _openEditor(context),
       ),
     };
   }
 
-  Future<void> _waterPlant(BuildContext context) async {
+  Future<void> _waterOrUndo(BuildContext context) async {
     final store = context.read<PlantService>();
-    final previousLevel = plant.waterLevel;
-    await store.waterPlant(plant);
-    if (!context.mounted) return;
-
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    if (previousLevel >= 100) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('${plant.name} is already fully watered.')),
-      );
+    if (_showUndo) {
+      await store.undoWaterPlant(plant);
+      _undoTimer?.cancel();
+      if (mounted) setState(() => _showUndo = false);
       return;
     }
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('${plant.name} watered.'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => store.undoWaterPlant(plant),
-        ),
-      ),
-    );
+    if (plant.waterLevel >= 100) return;
+    await store.waterPlant(plant);
+    if (!context.mounted) return;
+    _scheduleUndoExpiry();
+    setState(() {});
   }
 
-  Future<void> _handleMenuAction(
-    BuildContext context,
-    _PlantMenuAction action,
-  ) async {
-    switch (action) {
-      case _PlantMenuAction.undo:
-        await context.read<PlantService>().undoWaterPlant(plant);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Undid watering for ${plant.name}.')),
-          );
-        }
-      case _PlantMenuAction.edit:
-        await _showEditor(context);
-      case _PlantMenuAction.delete:
-        await _confirmDelete(context);
-    }
+  void _scheduleUndoExpiry() {
+    _undoTimer?.cancel();
+    _undoForWatering = plant.lastWateringTimestamp;
+    final remaining = plant.undoWateringTimeRemaining();
+    _showUndo = remaining != null;
+    if (remaining == null) return;
+    _undoTimer = Timer(remaining, () {
+      if (mounted) setState(() => _showUndo = false);
+    });
   }
 
-  Future<void> _showEditor(BuildContext context) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: PlantEditor(plant: plant),
-        ),
-      ),
+  Future<void> _openEditor(BuildContext context) {
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => PlantEditorScreen(plant: plant)),
     );
-  }
-
-  Future<void> _confirmDelete(BuildContext context) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete plant?'),
-        content: Text(
-          '${plant.name} and its watering history will be removed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(dialogContext).colorScheme.error,
-              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldDelete == true && context.mounted) {
-      await context.read<PlantService>().remove(plant);
-    }
   }
 }
 
@@ -141,16 +113,16 @@ class _PlantRow extends StatelessWidget {
     super.key,
     required this.plant,
     required this.status,
-    required this.onWater,
+    required this.isUndo,
+    required this.onWaterOrUndo,
     required this.onEdit,
-    required this.onMenuSelected,
   });
 
   final PlantData plant;
   final _PlantStatus status;
-  final VoidCallback onWater;
+  final bool isUndo;
+  final VoidCallback onWaterOrUndo;
   final VoidCallback onEdit;
-  final ValueChanged<_PlantMenuAction> onMenuSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +154,7 @@ class _PlantRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${plant.waterLevel}% · ${status.label}',
+                      status.label,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -205,17 +177,20 @@ class _PlantRow extends StatelessWidget {
               const SizedBox(width: 6),
               Semantics(
                 button: true,
-                label: 'Water ${plant.name}',
+                label:
+                    '${isUndo ? 'Undo watering for' : 'Water'} ${plant.name}',
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton.filledTonal(
-                      onPressed: onWater,
-                      tooltip: 'Water ${plant.name}',
-                      icon: const Icon(Icons.water_drop),
+                      onPressed: onWaterOrUndo,
+                      tooltip: isUndo
+                          ? 'Undo watering for ${plant.name}'
+                          : 'Water ${plant.name}',
+                      icon: Icon(isUndo ? Icons.undo : Icons.water_drop),
                     ),
                     Text(
-                      'Water',
+                      isUndo ? 'Undo' : 'Water',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -224,7 +199,6 @@ class _PlantRow extends StatelessWidget {
                   ],
                 ),
               ),
-              _PlantActionsMenu(plant: plant, onSelected: onMenuSelected),
             ],
           ),
         ),
@@ -239,16 +213,16 @@ class _PlantGridCard extends StatelessWidget {
     super.key,
     required this.plant,
     required this.status,
-    required this.onWater,
+    required this.isUndo,
+    required this.onWaterOrUndo,
     required this.onEdit,
-    required this.onMenuSelected,
   });
 
   final PlantData plant;
   final _PlantStatus status;
-  final VoidCallback onWater;
+  final bool isUndo;
+  final VoidCallback onWaterOrUndo;
   final VoidCallback onEdit;
-  final ValueChanged<_PlantMenuAction> onMenuSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -280,16 +254,6 @@ class _PlantGridCard extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 4,
-            right: 4,
-            child: _PlantActionsMenu(
-              plant: plant,
-              onSelected: onMenuSelected,
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.black54,
-            ),
-          ),
-          Positioned(
             left: 12,
             right: 12,
             bottom: 58,
@@ -309,7 +273,7 @@ class _PlantGridCard extends StatelessWidget {
             right: 62,
             bottom: 14,
             child: Text(
-              '${status.label}\n${plant.waterLevel}%',
+              status.label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -324,9 +288,11 @@ class _PlantGridCard extends StatelessWidget {
             right: 8,
             bottom: 8,
             child: IconButton.filled(
-              onPressed: onWater,
-              tooltip: 'Water ${plant.name}',
-              icon: const Icon(Icons.water_drop),
+              onPressed: onWaterOrUndo,
+              tooltip: isUndo
+                  ? 'Undo watering for ${plant.name}'
+                  : 'Water ${plant.name}',
+              icon: Icon(isUndo ? Icons.undo : Icons.water_drop),
               style: IconButton.styleFrom(
                 minimumSize: const Size.square(48),
                 backgroundColor: status.actionColor,
@@ -417,66 +383,6 @@ class _PhotoFallback extends StatelessWidget {
   }
 }
 
-/// Keeps infrequent plant actions available without a permanent button row.
-class _PlantActionsMenu extends StatelessWidget {
-  const _PlantActionsMenu({
-    required this.plant,
-    required this.onSelected,
-    this.foregroundColor,
-    this.backgroundColor,
-  });
-
-  final PlantData plant;
-  final ValueChanged<_PlantMenuAction> onSelected;
-  final Color? foregroundColor;
-  final Color? backgroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<_PlantMenuAction>(
-      onSelected: onSelected,
-      tooltip: 'More actions for ${plant.name}',
-      icon: Icon(Icons.more_vert, color: foregroundColor),
-      style: IconButton.styleFrom(
-        minimumSize: const Size.square(48),
-        backgroundColor: backgroundColor,
-      ),
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: _PlantMenuAction.undo,
-          child: ListTile(
-            leading: Icon(Icons.undo),
-            title: Text('Undo watering'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        const PopupMenuItem(
-          value: _PlantMenuAction.edit,
-          child: ListTile(
-            leading: Icon(Icons.edit_outlined),
-            title: Text('Edit plant'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem(
-          value: _PlantMenuAction.delete,
-          child: ListTile(
-            leading: Icon(
-              Icons.delete_outline,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            title: Text(
-              'Delete plant',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// Maps the current water level to concise text and accessible action colors.
 class _PlantStatus {
   const _PlantStatus({
@@ -527,103 +433,6 @@ class _PlantStatus {
       onImageColor: onImageColor,
       actionColor: actionColor,
       onActionColor: onActionColor,
-    );
-  }
-}
-
-/// Edits a plant's name and watering interval in a modal bottom sheet.
-class PlantEditor extends StatefulWidget {
-  const PlantEditor({super.key, required this.plant});
-  final PlantData plant;
-
-  @override
-  State<PlantEditor> createState() => _PlantEditorState();
-}
-
-/// Holds draft editor values until the user saves them to the plant service.
-class _PlantEditorState extends State<PlantEditor> {
-  late String _name;
-  late int _wateringInterval;
-  final TextEditingController _nameController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _name = widget.plant.name;
-    _wateringInterval = widget.plant.wateringInterval;
-    _nameController.text = _name;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _nameController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _nameController.text.length),
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  void _decrementInterval() {
-    setState(() {
-      _wateringInterval = max(_wateringInterval - 1, 1);
-    });
-  }
-
-  void _incrementInterval() {
-    setState(() {
-      _wateringInterval++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final PlantService store = Provider.of<PlantService>(context);
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            decoration: const InputDecoration(labelText: 'Plant Name'),
-            onChanged: (value) => setState(() => _name = value),
-            controller: _nameController,
-            autofocus: true,
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                onPressed: _decrementInterval,
-                tooltip: 'Decrease watering interval',
-                icon: const Icon(Icons.remove),
-              ),
-              Flexible(
-                child: Text('Days between watering: $_wateringInterval'),
-              ),
-              IconButton(
-                onPressed: _incrementInterval,
-                tooltip: 'Increase watering interval',
-                icon: const Icon(Icons.add),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () {
-              store.updatePlant(
-                widget.plant,
-                _name.trim().isEmpty ? widget.plant.name : _name.trim(),
-                _wateringInterval,
-              );
-              Navigator.of(context).pop();
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
     );
   }
 }

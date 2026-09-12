@@ -32,6 +32,7 @@ class PlantList extends StatelessWidget {
                 itemCount: plants.length,
                 separatorBuilder: (context, index) => const Divider(height: 16),
                 itemBuilder: (context, index) => PlantTile(
+                  key: ValueKey(plants[index].id),
                   plant: plants[index],
                   layout: PlantTileLayout.row,
                 ),
@@ -48,8 +49,11 @@ class PlantList extends StatelessWidget {
                 childAspectRatio: 0.74,
               ),
               itemCount: plants.length,
-              itemBuilder: (context, index) =>
-                  PlantTile(plant: plants[index], layout: PlantTileLayout.grid),
+              itemBuilder: (context, index) => PlantTile(
+                key: ValueKey(plants[index].id),
+                plant: plants[index],
+                layout: PlantTileLayout.grid,
+              ),
             );
           },
         );

@@ -27,4 +27,10 @@ class PlantPictureStorage {
       rethrow;
     }
   }
+
+  static Future<void> delete(String? picturePath) async {
+    if (picturePath == null) return;
+    final file = File(picturePath);
+    if (await file.exists()) await file.delete();
+  }
 }

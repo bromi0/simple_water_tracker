@@ -96,10 +96,12 @@ notification should become canonical shared plant data.
 ## Camera and pictures
 
 `camera/take_picture_screen.dart` owns camera permission, controller lifecycle,
-preview, and capture UI. It hands captured bytes to
+preview, and capture UI for new plants. `basic_feature/plant_editor_screen.dart`
+owns changes to an existing plant, including camera or gallery selection through
+`services/plant_photo_picker.dart`. Both flows hand bytes to
 `services/plant_picture_storage.dart`, which atomically stores the final image
-in the application documents directory. The resulting path is attached to the
-plant through `PlantService`.
+in the application documents directory. The resulting path is attached through
+`PlantService`.
 
 ## Settings, localization, and platforms
 
