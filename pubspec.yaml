@@ -18,6 +18,7 @@ dependencies:
     flutter_localizations:
         sdk: flutter
     flutter_timezone: ^5.1.0
+    image_picker: ^1.2.3
     json_annotation: ^4.12.0
     path: ^1.9.0
     path_provider: ^2.1.6

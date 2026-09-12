@@ -41,4 +41,43 @@ void main() {
     expect(plant.didPictureSaveFail, isTrue);
     expect(plant.picturePath, isNull);
   });
+
+  test('should expose watering as undoable for fifteen minutes', () {
+    final plant = PlantData(name: 'Fern', waterLevel: 40);
+
+    plant.waterPlant();
+    final wateredAt = plant.lastWateringTimestamp!;
+
+    expect(plant.canUndoWatering, isTrue);
+    expect(
+      plant.undoWateringTimeRemaining(
+        now: wateredAt.add(const Duration(minutes: 14, seconds: 59)),
+      ),
+      const Duration(seconds: 1),
+    );
+    expect(
+      plant.undoWateringTimeRemaining(
+        now: wateredAt.add(const Duration(minutes: 15)),
+      ),
+      isNull,
+    );
+    expect(plant.wateringHistory, hasLength(1));
+    expect(
+      () => plant.wateringHistory.add(
+        WateringRecord(timestamp: DateTime.now(), previousWaterLevel: 0),
+      ),
+      throwsUnsupportedError,
+    );
+  });
+
+  test('should reject an undo after fifteen minutes', () {
+    final plant = PlantData(name: 'Fern', waterLevel: 40)..waterPlant();
+
+    plant.undoWatering(
+      now: plant.lastWateringTimestamp!.add(const Duration(minutes: 15)),
+    );
+
+    expect(plant.waterLevel, 100);
+    expect(plant.wateringHistory, hasLength(1));
+  });
 }

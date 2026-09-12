@@ -8,6 +8,8 @@ part 'plant_data.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class PlantData {
+  static const undoWateringDuration = Duration(minutes: 15);
+
   PlantData({
     required this.name,
     required this.waterLevel,
@@ -42,6 +44,24 @@ class PlantData {
       _$PlantDataFromJson(json);
 
   Map<String, dynamic> toJson() => _$PlantDataToJson(this);
+
+  List<WateringRecord> get wateringHistory =>
+      List.unmodifiable(_wateringHistory);
+
+  DateTime? get lastWateringTimestamp =>
+      _wateringHistory.isEmpty ? null : _wateringHistory.last.timestamp;
+
+  Duration? undoWateringTimeRemaining({DateTime? now}) {
+    if (_wateringHistory.isEmpty) return null;
+    final elapsed = (now ?? DateTime.now()).toUtc().difference(
+      _wateringHistory.last.timestamp,
+    );
+    if (elapsed >= undoWateringDuration) return null;
+    if (elapsed.isNegative) return undoWateringDuration;
+    return undoWateringDuration - elapsed;
+  }
+
+  bool get canUndoWatering => undoWateringTimeRemaining() != null;
 
   Future<void> attachPicture(Future<String> savedPicturePath) async {
     _isPictureSaving = true;
@@ -85,22 +105,10 @@ class PlantData {
     ); // Ensure water level stays within 0-100 range
   }
 
-  void undoWatering() {
-    if (_wateringHistory.isNotEmpty) {
-      final now = DateTime.now();
-      final lastTimestamp = _wateringHistory.last.timestamp.toLocal();
-      final todayDate = DateTime(now.year, now.month, now.day);
-      final lastWateringRecordDate = DateTime(
-        lastTimestamp.year,
-        lastTimestamp.month,
-        lastTimestamp.day,
-      );
-
-      if (lastWateringRecordDate == todayDate) {
-        waterLevel = _wateringHistory.last.previousWaterLevel;
-        _wateringHistory.removeLast();
-      }
-    }
+  void undoWatering({DateTime? now}) {
+    if (undoWateringTimeRemaining(now: now) == null) return;
+    waterLevel = _wateringHistory.last.previousWaterLevel;
+    _wateringHistory.removeLast();
   }
 
   DateTime calculateWhenShouldWater({
