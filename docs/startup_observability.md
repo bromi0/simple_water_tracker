@@ -1,5 +1,11 @@
 # Startup performance and observability
 
+The measurements below are historical results for the recorded device, SDK,
+and builds, not current performance guarantees. Preserve their comparison
+caveats when investigating startup. The measurement script and diagnostics
+sections provide the reusable workflow; discover the current device with
+`flutter devices` before running it.
+
 ## 2026-08-27 baseline
 
 Measurements used a Xiaomi 2112123AG running Android 13 (API 33), connected

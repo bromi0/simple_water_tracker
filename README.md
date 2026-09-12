@@ -1,30 +1,15 @@
-# simple_water_tracker
+# Simply Water Plant
 
-A new Flutter project.
+A small Flutter app (`simple_water_tracker`) for tracking plant watering,
+attaching photos, and viewing a watering schedule. Local notification delivery
+is currently Android-only.
 
-## Getting Started
+## Development
 
-This project is a starting point for a Flutter application that follows the
-[simple app state management
-tutorial](https://flutter.dev/docs/development/data-and-backend/state-mgmt/simple).
+Use the SDK constraints in [pubspec.yaml](pubspec.yaml). Run `flutter pub get`
+to install dependencies, then `flutter run` with a connected device or emulator.
 
-For help getting started with Flutter development, view the
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
-## Assets
-
-The `assets` directory houses images, fonts, and any other files you want to
-include with your application.
-
-The `assets/images` directory contains [resolution-aware
-images](https://flutter.dev/docs/development/ui/assets-and-images#resolution-aware).
-
-## Localization
-
-This project generates localized messages based on arb files found in
-the `lib/src/localization` directory.
-
-To support additional languages, please visit the tutorial on
-[Internationalizing Flutter
-apps](https://flutter.dev/docs/development/accessibility-and-localization/internationalization)
+- [AGENTS.md](AGENTS.md): working rules, proportional validation, and device
+  testing boundaries.
+- [ARCHITECTURE.md](ARCHITECTURE.md): entry points, state ownership, reminder
+  behavior, and links to focused investigation notes.
