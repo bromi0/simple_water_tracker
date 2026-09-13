@@ -336,17 +336,7 @@ class PlantPhoto extends StatelessWidget {
       dimension: size,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            photo,
-            if (plant.isPictureSaving)
-              ColoredBox(
-                color: Colors.black45,
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-          ],
-        ),
+        child: Stack(fit: StackFit.expand, children: [photo]),
       ),
     );
   }
@@ -369,12 +359,10 @@ class _PhotoFallback extends StatelessWidget {
       color: plant.color,
       child: Center(
         child: Icon(
-          plant.didPictureSaveFail || didFail
-              ? Icons.broken_image_outlined
-              : Icons.eco,
+          didFail ? Icons.broken_image_outlined : Icons.eco,
           size: 42,
           color: foreground,
-          semanticLabel: plant.didPictureSaveFail || didFail
+          semanticLabel: didFail
               ? 'Photo unavailable'
               : 'No photo for ${plant.name}',
         ),

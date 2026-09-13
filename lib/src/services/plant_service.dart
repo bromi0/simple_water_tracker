@@ -28,9 +28,19 @@ class PlantReminderChange {
 }
 
 class PlantService extends ChangeNotifier {
-  PlantService() {
+  PlantService({
+    PictureSaver pictureSaver = PlantPictureStorage.save,
+    PictureDeleter pictureDeleter = PlantPictureStorage.delete,
+  }) {
+    _pictureSaver = pictureSaver;
+    _pictureDeleter = pictureDeleter;
     loaded = appPerformance.measure('startup.plants.load', _loadPlantData);
   }
+
+  // The service owns files once it has been asked to persist their bytes. The
+  // callbacks keep that ownership testable without exposing it to UI flows.
+  late final PictureSaver _pictureSaver;
+  late final PictureDeleter _pictureDeleter;
 
   // Coordinators can await persisted data without starting a second load.
   late final Future<void> loaded;
@@ -61,30 +71,47 @@ class PlantService extends ChangeNotifier {
     return null;
   }
 
-  Future<void> add(PlantData plant, {Future<String>? pictureSave}) async {
-    final pictureAttachment = pictureSave == null
-        ? null
-        : plant.attachPicture(pictureSave);
-    _plants.add(plant);
-    await _savePlantData();
-    _reminderChanges.add(PlantReminderChange.updated(plant.id));
-    notifyListeners();
-
-    try {
-      await pictureAttachment;
-    } catch (error) {
-      debugPrint('Could not save plant picture: $error');
+  Future<void> add(PlantData plant, {Uint8List? pictureBytes}) async {
+    final name = plant.name.trim();
+    _validatePlantDetails(name, plant.wateringInterval);
+    final oldName = plant.name;
+    final oldPicturePath = plant.picturePath;
+    String? picturePath;
+    if (pictureBytes != null) {
+      picturePath = await _pictureSaver(
+        plantId: plant.id,
+        pictureBytes: Future.value(pictureBytes),
+      );
     }
-    // Picture persistence does not alter watering state, but its path still
-    // needs to be saved after the asynchronous copy finishes.
-    await _savePlantData();
+    plant.name = name;
+    plant.picturePath = picturePath;
+    _plants.add(plant);
+    try {
+      await _savePlantData();
+    } catch (_) {
+      _plants.remove(plant);
+      plant.name = oldName;
+      plant.picturePath = oldPicturePath;
+      if (picturePath != null) await _deleteStoredPicture(picturePath);
+      rethrow;
+    }
+    _reminderChanges.add(PlantReminderChange.updated(plant.id));
     notifyListeners();
   }
 
   Future<void> remove(PlantData plant) async {
     final plantId = plant.id;
-    _plants.remove(plant);
-    await _savePlantData();
+    final plantIndex = _plants.indexOf(plant);
+    if (plantIndex == -1) throw StateError('Plant no longer exists');
+    _plants.removeAt(plantIndex);
+    try {
+      await _savePlantData();
+    } catch (_) {
+      _plants.insert(plantIndex, plant);
+      updateStoreState();
+      rethrow;
+    }
+    await _deleteStoredPicture(plant.picturePath);
     _reminderChanges.add(PlantReminderChange.removed(plantId));
     notifyListeners();
   }
@@ -110,22 +137,26 @@ class PlantService extends ChangeNotifier {
     Uint8List? pictureBytes,
   }) async {
     if (!_plants.contains(plant)) throw StateError('Plant no longer exists');
-    if (name.trim().isEmpty || wateringInterval < 1) {
-      throw ArgumentError('A name and a positive interval are required');
-    }
+    final normalizedName = name.trim();
+    _validatePlantDetails(normalizedName, wateringInterval);
     // A new file keeps the original intact until Save succeeds and avoids
     // reusing Flutter's cached image for the previous photo.
     final newPicturePath = pictureBytes == null
         ? plant.picturePath
-        : await PlantPictureStorage.save(
+        : await _pictureSaver(
             plantId: '${plant.id}-${const Uuid().v4()}',
             pictureBytes: Future.value(pictureBytes),
           );
-    if (!_plants.contains(plant)) throw StateError('Plant no longer exists');
+    if (!_plants.contains(plant)) {
+      if (newPicturePath != plant.picturePath) {
+        await _deleteStoredPicture(newPicturePath);
+      }
+      throw StateError('Plant no longer exists');
+    }
     final oldName = plant.name;
     final oldInterval = plant.wateringInterval;
     final oldPicturePath = plant.picturePath;
-    plant.name = name;
+    plant.name = normalizedName;
     plant.wateringInterval = wateringInterval;
     plant.picturePath = newPicturePath;
     try {
@@ -198,7 +229,7 @@ class PlantService extends ChangeNotifier {
 
   Future<void> _deleteStoredPicture(String? picturePath) async {
     try {
-      await PlantPictureStorage.delete(picturePath);
+      await _pictureDeleter(picturePath);
     } catch (error, stackTrace) {
       // The persisted plant is already valid; an orphaned file can be cleaned
       // up later and must not make the edit look like it failed.
@@ -223,4 +254,18 @@ class PlantService extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void _validatePlantDetails(String name, int wateringInterval) {
+    if (name.trim().isEmpty || wateringInterval < 1) {
+      throw ArgumentError('A name and a positive interval are required');
+    }
+  }
 }
+
+typedef PictureSaver =
+    Future<String> Function({
+      required String plantId,
+      required Future<Uint8List> pictureBytes,
+    });
+
+typedef PictureDeleter = Future<void> Function(String? picturePath);

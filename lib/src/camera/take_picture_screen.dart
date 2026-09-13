@@ -8,14 +8,11 @@ import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'package:simple_water_tracker/src/helpers/plant_name_generator.dart';
 
-import '../services/plant_picture_storage.dart';
 import '../services/plant_service.dart';
 
 // A screen that allows users to take a picture using a given camera.
 class TakePictureScreen extends StatefulWidget {
-  const TakePictureScreen({
-    super.key,
-  });
+  const TakePictureScreen({super.key});
 
   static const routeName = '/camera';
 
@@ -30,8 +27,9 @@ enum _CameraPermissionDecision { granted, needsRequest }
 class _TakePictureScreenState extends State<TakePictureScreen>
     with WidgetsBindingObserver {
   CameraController? _cameraController;
-  final TextEditingController _plantNameController =
-      TextEditingController(text: generateRandomPlantName());
+  final TextEditingController _plantNameController = TextEditingController(
+    text: generateRandomPlantName(),
+  );
   int _currentWateringIntervalSliderValue = 3;
   _CameraStatus _cameraStatus = _CameraStatus.initializing;
   Future<void>? _cameraDisposal;
@@ -94,10 +92,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
         return;
       }
 
-      controller = CameraController(
-        cameras.first,
-        ResolutionPreset.veryHigh,
-      );
+      controller = CameraController(cameras.first, ResolutionPreset.veryHigh);
       _cameraController = controller;
       await controller.initialize().timeout(const Duration(seconds: 15));
 
@@ -198,11 +193,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
       if (!mounted) return;
 
       final plant = _createPlant();
-      final pictureSave = PlantPictureStorage.save(
-        plantId: plant.id,
-        pictureBytes: imageFile.readAsBytes(),
-      );
-      unawaited(store.add(plant, pictureSave: pictureSave));
+      await store.add(plant, pictureBytes: await imageFile.readAsBytes());
 
       await _disposeCamera();
       if (!mounted) return;
@@ -229,9 +220,18 @@ class _TakePictureScreenState extends State<TakePictureScreen>
     );
   }
 
-  void _addPlantWithoutPhoto(PlantService store) {
-    unawaited(store.add(_createPlant()));
-    Navigator.pop(context);
+  Future<void> _addPlantWithoutPhoto(PlantService store) async {
+    try {
+      await store.add(_createPlant());
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      debugPrint('Could not add plant: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not add this plant.')),
+        );
+      }
+    }
   }
 
   @override
@@ -246,27 +246,31 @@ class _TakePictureScreenState extends State<TakePictureScreen>
       body: Column(
         children: [
           Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: TextField(
-                controller: _plantNameController,
-                decoration: const InputDecoration(
-                  hintText: 'How should we call the plant?',
-                  border: OutlineInputBorder(),
-                ),
-              )),
-          Text('Days between watering: $_currentWateringIntervalSliderValue',
-              style: sliderTextStyle),
+            padding: const EdgeInsets.all(32.0),
+            child: TextField(
+              controller: _plantNameController,
+              decoration: const InputDecoration(
+                hintText: 'How should we call the plant?',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Text(
+            'Days between watering: $_currentWateringIntervalSliderValue',
+            style: sliderTextStyle,
+          ),
           const SizedBox(height: 12.0),
           Slider(
-              value: _currentWateringIntervalSliderValue.toDouble(),
-              min: 1,
-              max: 20,
-              divisions: 20,
-              onChanged: (double value) {
-                setState(() {
-                  _currentWateringIntervalSliderValue = value.toInt();
-                });
-              }),
+            value: _currentWateringIntervalSliderValue.toDouble(),
+            min: 1,
+            max: 20,
+            divisions: 20,
+            onChanged: (double value) {
+              setState(() {
+                _currentWateringIntervalSliderValue = value.toInt();
+              });
+            },
+          ),
           const SizedBox(height: 24.0),
           Expanded(child: _buildCameraView(store)),
         ],
@@ -331,10 +335,10 @@ class _TakePictureScreenState extends State<TakePictureScreen>
             canOpenSettings
                 ? 'Camera permission denied'
                 : cameraPermissionNeeded
-                    ? 'Camera permission required'
-                    : canRetry
-                        ? 'Camera access unavailable'
-                        : 'No camera available',
+                ? 'Camera permission required'
+                : canRetry
+                ? 'Camera access unavailable'
+                : 'No camera available',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -353,9 +357,8 @@ class _TakePictureScreenState extends State<TakePictureScreen>
           if (canRetry) ...[
             const SizedBox(height: 8),
             TextButton(
-              onPressed: () => _initializeCamera(
-                requestPermission: cameraPermissionNeeded,
-              ),
+              onPressed: () =>
+                  _initializeCamera(requestPermission: cameraPermissionNeeded),
               child: Text(
                 cameraPermissionNeeded ? 'Use camera' : 'Retry camera',
               ),

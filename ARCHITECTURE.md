@@ -88,12 +88,11 @@ owns an unsaved draft and selects camera/gallery photos through
 `services/plant_photo_picker.dart`. `app.dart` recovers interrupted Android
 photo picks and opens the editor with the recovered draft.
 
-Creation starts `services/plant_picture_storage.dart` from the camera screen
-and passes its future to `PlantService.add`; `PlantData` tracks attachment
-progress. Editing passes bytes to `PlantService.updatePlant`, which saves the
-image and persists the edit. Storage writes images atomically in the application
-documents directory. `basic_feature/plant_tile.dart` shares photo rendering and
-water/undo actions between rows and grid cards; the editor has its own preview.
+The camera screen and editor pass photo bytes to `PlantService`, which owns
+storage, plant persistence, and releasing replaced or removed files. Storage
+writes images atomically in the application documents directory.
+`basic_feature/plant_tile.dart` shares photo rendering and water/undo actions
+between rows and grid cards; the editor has its own preview.
 
 ## Settings, localization, and platforms
 

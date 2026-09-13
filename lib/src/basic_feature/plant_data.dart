@@ -31,11 +31,6 @@ class PlantData {
   @JsonKey(includeToJson: false)
   int wateringThreshold; // water level percentile when the notification is supposed to happen
   String? picturePath;
-  bool _isPictureSaving = false;
-  bool _didPictureSaveFail = false;
-
-  bool get isPictureSaving => _isPictureSaving;
-  bool get didPictureSaveFail => _didPictureSaveFail;
 
   @JsonKey(includeToJson: true, includeFromJson: true)
   List<WateringRecord> _wateringHistory = []; // List to store watering timestamps
@@ -62,19 +57,6 @@ class PlantData {
   }
 
   bool get canUndoWatering => undoWateringTimeRemaining() != null;
-
-  Future<void> attachPicture(Future<String> savedPicturePath) async {
-    _isPictureSaving = true;
-    _didPictureSaveFail = false;
-    try {
-      picturePath = await savedPicturePath;
-    } catch (_) {
-      _didPictureSaveFail = true;
-      rethrow;
-    } finally {
-      _isPictureSaving = false;
-    }
-  }
 
   void waterPlant() {
     if (waterLevel < 100) {
