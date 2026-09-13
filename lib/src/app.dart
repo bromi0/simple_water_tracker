@@ -12,6 +12,7 @@ import 'observability/app_observability.dart';
 import 'services/plant_service.dart';
 import 'services/plant_photo_picker.dart';
 import 'services/reminder_coordinator.dart';
+import 'services/room_service.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
@@ -30,12 +31,14 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
   // schedules from the same PlantService instance exposed to the widgets.
   late final PlantService _plantService;
   late final ReminderCoordinator _reminderCoordinator;
+  late final RoomService _roomService;
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
     super.initState();
     _plantService = PlantService();
+    _roomService = RoomService();
     _reminderCoordinator = ReminderCoordinator(plantService: _plantService);
     _startReminderCoordinator();
     _recoverPickedPhoto();
@@ -86,6 +89,7 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
   void dispose() {
     _reminderCoordinator.dispose();
     _plantService.dispose();
+    _roomService.dispose();
     super.dispose();
   }
 
@@ -102,6 +106,7 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
           providers: [
             ChangeNotifierProvider.value(value: widget.settingsController),
             ChangeNotifierProvider.value(value: _plantService),
+            ChangeNotifierProvider.value(value: _roomService),
             Provider.value(value: _reminderCoordinator),
           ],
           child: MaterialApp(

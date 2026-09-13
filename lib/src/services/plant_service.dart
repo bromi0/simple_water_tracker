@@ -180,6 +180,39 @@ class PlantService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Moves a plant without changing its watering details or reminder slots.
+  Future<void> updatePlantRoom(PlantData plant, String? roomId) async {
+    if (!_plants.contains(plant)) throw StateError('Plant no longer exists');
+    if (plant.roomId == roomId) return;
+    final oldRoomId = plant.roomId;
+    plant.roomId = roomId;
+    try {
+      await _savePlantData(refreshWateringState: false);
+    } catch (_) {
+      plant.roomId = oldRoomId;
+      rethrow;
+    }
+    notifyListeners();
+  }
+
+  /// Clears references to a removed room without affecting reminder delivery.
+  Future<void> clearRoomReferences(String roomId) async {
+    final affected = _plants.where((plant) => plant.roomId == roomId).toList();
+    if (affected.isEmpty) return;
+    for (final plant in affected) {
+      plant.roomId = null;
+    }
+    try {
+      await _savePlantData(refreshWateringState: false);
+    } catch (_) {
+      for (final plant in affected) {
+        plant.roomId = roomId;
+      }
+      rethrow;
+    }
+    notifyListeners();
+  }
+
   void calculateWaterLevels() {
     for (var plantData in _plants) {
       plantData.updateWaterLevel();
@@ -213,8 +246,8 @@ class PlantService extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> _savePlantData() async {
-    updateStoreState();
+  Future<void> _savePlantData({bool refreshWateringState = true}) async {
+    if (refreshWateringState) updateStoreState();
     final prefs = await SharedPreferences.getInstance();
     List<Map<String, dynamic>> jsonList = _plants
         .map((plantData) => plantData.toJson())

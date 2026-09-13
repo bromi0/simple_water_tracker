@@ -50,4 +50,18 @@ void main() {
     expect(plant.waterLevel, 100);
     expect(plant.wateringHistory, hasLength(1));
   });
+
+  test('loads plants saved before rooms as unassigned', () {
+    final plant = PlantData.fromJson({
+      'id': 'fern',
+      'name': 'Fern',
+      'waterLevel': 50,
+      'color': 4278255360,
+      'wateringInterval': 3,
+      '_wateringHistory': [],
+    });
+
+    expect(plant.roomId, isNull);
+    expect(plant.toJson()['roomId'], isNull);
+  });
 }

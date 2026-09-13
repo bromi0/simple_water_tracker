@@ -5,19 +5,32 @@ import '../services/plant_service.dart';
 import '../settings/settings_controller.dart';
 import '../settings/settings_service.dart';
 import 'plant_tile.dart';
+import '../rooms/room_selection.dart';
 
 /// Lazily renders the plant collection in the user's selected responsive view.
 class PlantList extends StatelessWidget {
-  const PlantList({super.key, required this.layout, required this.onAddPlant});
+  const PlantList({
+    super.key,
+    required this.layout,
+    required this.onAddPlant,
+    required this.selection,
+    required this.roomName,
+  });
 
   final PlantListLayout layout;
   final VoidCallback onAddPlant;
+  final RoomSelection selection;
+  final String? roomName;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<PlantService>(
       builder: (context, store, child) {
-        final plants = store.plants;
+        final plants = store.plants.where((plant) {
+          if (selection.isAll) return true;
+          if (selection.isUnassigned) return plant.roomId == null;
+          return plant.roomId == selection.roomId;
+        }).toList();
         final scheduledTimes = {
           for (final reminder in store.wateringSchedule)
             reminder.plant.id: reminder.scheduledDateTime,
@@ -26,7 +39,10 @@ class PlantList extends StatelessWidget {
             .watch<SettingsController>()
             .wateringStatusPresentation;
         if (plants.isEmpty) {
-          return _EmptyPlantList(onAddPlant: onAddPlant);
+          return _EmptyPlantList(
+            onAddPlant: onAddPlant,
+            roomName: selection.roomId == null ? null : roomName,
+          );
         }
 
         return LayoutBuilder(
@@ -78,9 +94,10 @@ class PlantList extends StatelessWidget {
 
 /// Guides users to the existing add-plant flow when the collection is empty.
 class _EmptyPlantList extends StatelessWidget {
-  const _EmptyPlantList({required this.onAddPlant});
+  const _EmptyPlantList({required this.onAddPlant, this.roomName});
 
   final VoidCallback onAddPlant;
+  final String? roomName;
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +114,15 @@ class _EmptyPlantList extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 20),
-            Text('No plants yet', style: textTheme.headlineSmall),
+            Text(
+              roomName == null ? 'No plants yet' : 'No plants in $roomName',
+              style: textTheme.headlineSmall,
+            ),
             const SizedBox(height: 8),
             Text(
-              'Add your first plant to start tracking its watering.',
+              roomName == null
+                  ? 'Add your first plant to start tracking its watering.'
+                  : 'Add a plant or move one here from its editor.',
               textAlign: TextAlign.center,
               style: textTheme.bodyLarge,
             ),

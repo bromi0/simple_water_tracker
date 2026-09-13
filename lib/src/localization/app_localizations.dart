@@ -99,6 +99,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'simple_water_tracker'**
   String get appTitle;
+
+  /// No description provided for @roomSuggestionLivingRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Living room'**
+  String get roomSuggestionLivingRoom;
+
+  /// No description provided for @roomSuggestionBedroom.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedroom'**
+  String get roomSuggestionBedroom;
+
+  /// No description provided for @roomSuggestionKitchen.
+  ///
+  /// In en, this message translates to:
+  /// **'Kitchen'**
+  String get roomSuggestionKitchen;
+
+  /// No description provided for @roomSuggestionDiningRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Dining room'**
+  String get roomSuggestionDiningRoom;
+
+  /// No description provided for @roomSuggestionOffice.
+  ///
+  /// In en, this message translates to:
+  /// **'Office'**
+  String get roomSuggestionOffice;
+
+  /// No description provided for @roomSuggestionBalcony.
+  ///
+  /// In en, this message translates to:
+  /// **'Balcony'**
+  String get roomSuggestionBalcony;
+
+  /// No description provided for @roomSuggestionHallway.
+  ///
+  /// In en, this message translates to:
+  /// **'Hallway'**
+  String get roomSuggestionHallway;
+
+  /// No description provided for @roomSuggestionPatio.
+  ///
+  /// In en, this message translates to:
+  /// **'Patio'**
+  String get roomSuggestionPatio;
+
+  /// No description provided for @roomSuggestionTerrace.
+  ///
+  /// In en, this message translates to:
+  /// **'Terrace'**
+  String get roomSuggestionTerrace;
+
+  /// No description provided for @roomSuggestionPorch.
+  ///
+  /// In en, this message translates to:
+  /// **'Porch'**
+  String get roomSuggestionPorch;
+
+  /// No description provided for @roomSuggestionGarden.
+  ///
+  /// In en, this message translates to:
+  /// **'Garden'**
+  String get roomSuggestionGarden;
+
+  /// No description provided for @roomSuggestionGreenhouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Greenhouse'**
+  String get roomSuggestionGreenhouse;
+
+  /// No description provided for @roomSuggestionYard.
+  ///
+  /// In en, this message translates to:
+  /// **'Yard'**
+  String get roomSuggestionYard;
 }
 
 class _AppLocalizationsDelegate

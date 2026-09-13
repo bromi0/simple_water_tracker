@@ -15,6 +15,7 @@ PlantData _$PlantDataFromJson(Map<String, dynamic> json) =>
             : const ColorSerializer().fromJson((json['color'] as num).toInt()),
         wateringInterval: (json['wateringInterval'] as num?)?.toInt() ?? 3,
         wateringThreshold: (json['wateringThreshold'] as num?)?.toInt() ?? 35,
+        roomId: json['roomId'] as String?,
         id: json['id'] as String?,
       )
       ..picturePath = json['picturePath'] as String?
@@ -29,6 +30,7 @@ Map<String, dynamic> _$PlantDataToJson(PlantData instance) => <String, dynamic>{
   'color': const ColorSerializer().toJson(instance.color),
   'wateringInterval': instance.wateringInterval,
   'picturePath': instance.picturePath,
+  'roomId': instance.roomId,
   '_wateringHistory': instance._wateringHistory.map((e) => e.toJson()).toList(),
 };
 

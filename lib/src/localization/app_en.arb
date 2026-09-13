@@ -3,5 +3,18 @@
   "@appTitle": {
     "description": "Simple home plant water tracker app. I've made this for educational purpose."
   },
+  "roomSuggestionLivingRoom": "Living room",
+  "roomSuggestionBedroom": "Bedroom",
+  "roomSuggestionKitchen": "Kitchen",
+  "roomSuggestionDiningRoom": "Dining room",
+  "roomSuggestionOffice": "Office",
+  "roomSuggestionBalcony": "Balcony",
+  "roomSuggestionHallway": "Hallway",
+  "roomSuggestionPatio": "Patio",
+  "roomSuggestionTerrace": "Terrace",
+  "roomSuggestionPorch": "Porch",
+  "roomSuggestionGarden": "Garden",
+  "roomSuggestionGreenhouse": "Greenhouse",
+  "roomSuggestionYard": "Yard",
   "@@locale": "en"
 }

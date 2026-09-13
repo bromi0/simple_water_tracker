@@ -17,6 +17,7 @@ class PlantData {
     this.wateringInterval = 3,
     // we don't save it for now, will start when there is UI to change.
     this.wateringThreshold = 35,
+    this.roomId,
     String? id,
   }) : id = id ?? const Uuid().v4();
 
@@ -31,6 +32,10 @@ class PlantData {
   @JsonKey(includeToJson: false)
   int wateringThreshold; // water level percentile when the notification is supposed to happen
   String? picturePath;
+
+  /// The optional room that contains this plant. A missing value means that
+  /// the plant is intentionally unassigned.
+  String? roomId;
 
   @JsonKey(includeToJson: true, includeFromJson: true)
   List<WateringRecord> _wateringHistory = []; // List to store watering timestamps

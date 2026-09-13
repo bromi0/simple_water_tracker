@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_list_view.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_tile.dart';
 import 'package:simple_water_tracker/src/services/plant_service.dart';
+import 'package:simple_water_tracker/src/services/room_service.dart';
 import 'package:simple_water_tracker/src/settings/settings_controller.dart';
 import 'package:simple_water_tracker/src/settings/settings_service.dart';
 
@@ -13,11 +14,14 @@ void main() {
     testWidgets('${layout.name} opens the dedicated editor', (tester) async {
       SharedPreferences.setMockInitialValues({});
       final store = PlantService();
+      final rooms = RoomService();
       await store.loaded;
+      await rooms.loaded;
       final settings = SettingsController(SettingsService());
       await settings.loadSettings();
       await settings.updatePlantListLayout(layout);
       addTearDown(store.dispose);
+      addTearDown(rooms.dispose);
       addTearDown(settings.dispose);
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(400, 800);
@@ -26,6 +30,7 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider.value(value: store),
+            ChangeNotifierProvider.value(value: rooms),
             ChangeNotifierProvider.value(value: settings),
           ],
           child: MaterialApp(home: PlantListView(settingsController: settings)),
