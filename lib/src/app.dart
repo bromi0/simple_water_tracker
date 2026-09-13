@@ -98,9 +98,11 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
     return ListenableBuilder(
       listenable: widget.settingsController,
       builder: (BuildContext context, Widget? child) {
-        return ChangeNotifierProvider.value(
-          // The state owns and disposes this existing instance.
-          value: _plantService,
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: _plantService),
+            Provider.value(value: _reminderCoordinator),
+          ],
           child: MaterialApp(
             navigatorKey: _navigatorKey,
             debugShowCheckedModeBanner: false,

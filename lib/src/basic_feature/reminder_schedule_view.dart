@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/notification_service.dart';
+import '../services/reminder_coordinator.dart';
 import '../services/plant_service.dart';
 
 class ReminderScheduleView extends StatelessWidget {
@@ -34,23 +34,21 @@ class ReminderScheduleView extends StatelessWidget {
   }
 
   Future<void> _scheduleTest(BuildContext context) async {
-    final scheduled = await NotificationService.scheduleTestNotification();
-    if (scheduled) {
-      if (!context.mounted) return;
-      // The test action may have just granted notification permission. Rebuild
-      // the existing plant reminders now that platform delivery is available.
-      await context.read<PlantService>().refreshReminders();
+    String message;
+    try {
+      final scheduled = await context
+          .read<ReminderCoordinator>()
+          .scheduleTestNotification();
+      message = scheduled
+          ? 'Test reminder scheduled for one minute from now.'
+          : 'Notifications are off or unavailable. Check notification settings.';
+    } catch (_) {
+      message = 'Could not schedule a test reminder. Try again.';
     }
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          scheduled
-              ? 'Test reminder scheduled for one minute from now.'
-              : 'Enable notifications to schedule a test reminder.',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

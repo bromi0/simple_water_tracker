@@ -38,28 +38,42 @@ reconciliation; calculation is not currently a read-only operation.
 
 The app calculates reminders at startup and after plant saves, then lets the
 OS deliver them. There is no periodic Dart background worker, and returning
-from the background does not currently trigger recalculation.
+from the background does not generally trigger recalculation. The notification
+settings section rechecks OS permission on return; newly enabled delivery
+reconciles reminders. Unchanged permission checks do not move delivery times.
 
 The flow is `PlantService` → `ReminderCoordinator` → `NotificationService`
 (all under `services/`). Plant state determines when watering is due;
 `reminder_delivery_policy.dart` adds an overdue grace period and one retry.
-The notification service handles permissions, timezone setup, and OS delivery.
+The notification service handles timezone setup and OS delivery.
+`services/android_notification_permissions.dart` handles Android app permission
+and watering-channel status. Requests use the existing permission-handler plugin;
+UI-only navigation to Android notification settings uses a small channel in
+`MainActivity`. Headless package recovery only reads delivery status through the
+notification plugin and does not depend on an Activity. Unsupported platforms
+report notifications unavailable; future iOS authorization needs its own policy.
 
 Each plant has stable notification IDs for its initial reminder and retry.
 Startup updates pending slots while preserving already-visible alerts. Saving
 changes replaces that plant's slots and clears outdated alerts; removal cancels
 them. Dismissing an alert never marks a plant watered. Stable IDs avoid creating
-new slots on each calculation, but do not guarantee ordering between overlapping
-updates or unchanged delivery times when overdue reminders are recalculated.
+new slots on each calculation. The coordinator serializes startup, plant changes,
+and permission-triggered reconciliation, reading current plant state when queued
+work runs. Both permission entry points await pending-slot reconciliation without
+clearing visible alerts. Recalculating overdue reminders can still move delivery
+times.
 
 Android package updates can remove an alert before the user sees it. This is
 the exception requiring brief background Dart work: `NotificationRecoveryReceiver`
 starts a temporary headless engine and calls
 `services/package_replacement_recovery.dart` through `notificationRecoveryMain`
 in `lib/main.dart`. It rebuilds reminders from saved plant state using the same
-coordinator, then shuts down. The notification plugin separately restores
-pending alarms. Keep recovery independent of an Activity and within the
-broadcast execution window.
+coordinator, then shuts down. This receiver exclusively owns package-replacement
+recovery; the notification plugin's receiver restores cached alarms only after
+device boot. This prevents two update receivers from racing while keeping plant
+state authoritative. The short-lived test notification is not restored across
+an app update. Keep recovery independent of an Activity and within the broadcast
+execution window.
 
 Delivery is currently Android-only; web can still show the watering schedule.
 Domain times stay in UTC, with local-time conversion for display and OS
@@ -84,8 +98,10 @@ water/undo actions between rows and grid cards; the editor has its own preview.
 ## Settings, localization, and platforms
 
 `settings/` separates the UI controller from preference-backed storage; it
-owns theme and row/grid preferences and forwards notification-permission
-actions. Localization ARB sources and generated classes are under
+owns theme and row/grid preferences. `settings/notification_settings.dart` shows
+OS-owned notification status, offers permission requests or Android settings,
+and sends permission transitions through the reminder coordinator. It keeps
+permission errors separate from reminder scheduling errors. Localization ARB sources and generated classes are under
 `localization/`.
 
 `android/` contains permissions, notification receivers, and Android build

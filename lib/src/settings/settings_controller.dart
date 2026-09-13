@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../services/notification_service.dart';
-
 import 'settings_service.dart';
 
 /// A class that many Widgets can interact with to read user settings, update
@@ -23,9 +21,6 @@ class SettingsController with ChangeNotifier {
   // Allow Widgets to read the user's preferred ThemeMode.
   ThemeMode get themeMode => _themeMode;
   PlantListLayout get plantListLayout => _plantListLayout;
-
-  Future<bool> get notificationsEnabled =>
-      NotificationService.isPermissionsGranted();
 
   /// Load the user's settings from the SettingsService. It may load from a
   /// local database or the internet. The controller only knows it can load the
@@ -60,7 +55,4 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
     await _settingsService.updatePlantListLayout(newLayout);
   }
-
-  Future<bool> requestNotificationsPermission() =>
-      NotificationService.requestPermissions();
 }

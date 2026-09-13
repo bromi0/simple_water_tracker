@@ -5,8 +5,8 @@ import 'reminder_coordinator.dart';
 /// Recalculates the desired Android reminders from persisted plant state.
 ///
 /// Android invokes this without an Activity after replacing the package.
-/// Stable notification IDs make the operation idempotent with both normal app
-/// startup and the notification plugin's own pending-alarm restoration.
+/// This is the sole package-replacement recovery path; the notification
+/// plugin restores its cached pending alarms only after device boot.
 Future<void> restoreWateringRemindersAfterPackageReplacement({
   Future<void> Function()? configurePlatformNotifications,
   PlantService Function()? createPlantService,

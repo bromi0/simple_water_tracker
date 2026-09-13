@@ -176,15 +176,6 @@ class PlantService extends ChangeNotifier {
     calculateWateringSchedule();
   }
 
-  Future<void> refreshReminders() async {
-    await loaded;
-    updateStoreState();
-    for (final plant in _plants) {
-      _reminderChanges.add(PlantReminderChange.updated(plant.id));
-    }
-    notifyListeners();
-  }
-
   @override
   void dispose() {
     unawaited(_reminderChanges.close());

@@ -8,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../observability/app_observability.dart';
+import 'android_notification_permissions.dart';
 
 class NotificationService {
   static final _notifications = FlutterLocalNotificationsPlugin();
@@ -85,7 +86,7 @@ class NotificationService {
       return false;
     }
     final androidNotificationDetails = AndroidNotificationDetails(
-      'mainChannel',
+      AndroidNotificationPermissions.channelId,
       'Water time notifications',
       channelDescription: 'The notifications reminding to water your plants.',
       importance: Importance.high,
@@ -149,18 +150,26 @@ class NotificationService {
     await prefs.remove(_legacyWateringIdsKey);
   }
 
-  static Future<bool> isPermissionsGranted() async {
-    if (kIsWeb) {
-      return false; // Web doesn't support local notifications yet
-    }
-
-    return await _notifications
-            .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin
-            >()
-            ?.areNotificationsEnabled() ??
-        false;
+  static AndroidNotificationPermissions? get _androidPermissions {
+    if (kIsWeb || !Platform.isAndroid) return null;
+    final plugin = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return plugin == null ? null : AndroidNotificationPermissions(plugin);
   }
+
+  static Future<bool> isPermissionsGranted() async {
+    _notificationsEnabled = await _androidPermissions?.isGranted() ?? false;
+    return _notificationsEnabled;
+  }
+
+  static Future<NotificationPermissionState> permissionState() async =>
+      await _androidPermissions?.read() ??
+      NotificationPermissionState.unsupported;
+
+  static Future<bool> openNotificationSettings() async =>
+      await _androidPermissions?.openSettings() ?? false;
 
   static int _notificationId(String plantId, WateringNotificationSlot slot) {
     // A stable plant ID gives the platform one replaceable notification slot
@@ -174,42 +183,12 @@ class NotificationService {
   }
 
   static Future<bool> requestPermissions() async {
-    if (kIsWeb) {
-      return false; // Web doesn't support local notifications yet
-    }
-
-    try {
-      final ios = await _notifications
-          .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin
-          >()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
-
-      final macos = await _notifications
-          .resolvePlatformSpecificImplementation<
-            MacOSFlutterLocalNotificationsPlugin
-          >()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
-
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _notifications
-              .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin
-              >();
-
-      final android = await androidImplementation
-          ?.requestNotificationsPermission();
-
-      _notificationsEnabled = ios ?? macos ?? android ?? false;
-      return _notificationsEnabled;
-    } catch (e) {
-      // stderr.writeln('Error requesting notifications permission: $e');
-      return false;
-    }
+    _notificationsEnabled = await _androidPermissions?.request() ?? false;
+    return _notificationsEnabled;
   }
 
   static Future<bool> scheduleTestNotification() async {
-    if (!_notificationsEnabled && !await requestPermissions()) return false;
+    if (!_notificationsEnabled) return false;
     return zonedScheduleNotification(
       id: 999,
       dt: DateTime.now().add(const Duration(minutes: 1)),

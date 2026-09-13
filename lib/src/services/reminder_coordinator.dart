@@ -14,12 +14,22 @@ class ReminderCoordinator {
     required this.plantService,
     this.policy = const ReminderDeliveryPolicy(),
     Future<void> Function()? initializeNotifications,
+    Future<bool> Function()? requestPermissions,
+    Future<bool> Function()? readPermissions,
+    Future<bool> Function()? scheduleTestNotification,
     Future<void> Function(String, List<WateringNotification>)?
     schedulePlantNotifications,
     Future<void> Function(String, List<WateringNotification>)?
     replacePlantNotifications,
     Future<void> Function(String)? cancelPlantNotifications,
-  }) : _initializeNotifications =
+  }) : _readPermissions =
+           readPermissions ?? NotificationService.isPermissionsGranted,
+       _requestPermissions =
+           requestPermissions ?? NotificationService.requestPermissions,
+       _scheduleTestNotification =
+           scheduleTestNotification ??
+           NotificationService.scheduleTestNotification,
+       _initializeNotifications =
            initializeNotifications ??
            NotificationService.initializeNotifications,
        _replacePlantNotifications =
@@ -42,50 +52,113 @@ class ReminderCoordinator {
   final Future<void> Function(String) _cancelPlantNotifications;
 
   StreamSubscription<PlantReminderChange>? _plantChangeSubscription;
-  bool _started = false;
-  bool _ready = false;
+  final Future<bool> Function() _readPermissions;
+  final Future<bool> Function() _requestPermissions;
+  bool _permissionGranted = false;
+  final Future<bool> Function() _scheduleTestNotification;
+  Future<void>? _start;
+  Future<void> _pending = Future.value();
+  bool _disposed = false;
 
-  Future<void> start() async {
-    if (_started) return;
-    _started = true;
-    await appPerformance.measure('startup.reminders.ready', () async {
-      _plantChangeSubscription = plantService.reminderChanges.listen(
-        _plantReminderChanged,
-      );
-
-      await appPerformance.measure(
-        'startup.reminders.initialize_delivery',
-        _initializeNotifications,
-      );
-      await plantService.loaded;
-      _ready = true;
-      await appPerformance.measure(
-        'startup.reminders.sync_plants',
-        _syncAllPlants,
-      );
+  Future<void> start() {
+    if (_disposed) return Future.value();
+    return _start ??= _begin().onError((Object error, StackTrace stack) {
+      _start = null;
+      Error.throwWithStackTrace(error, stack);
     });
   }
 
+  Future<void> _begin() {
+    final startup = _enqueue(() async {
+      await appPerformance.measure('startup.reminders.ready', () async {
+        await appPerformance.measure(
+          'startup.reminders.initialize_delivery',
+          _initializeNotifications,
+        );
+        _permissionGranted = await _readPermissions();
+        await plantService.loaded;
+        if (_disposed) return;
+        await appPerformance.measure(
+          'startup.reminders.sync_plants',
+          _syncAllPlants,
+        );
+      });
+    });
+    _plantChangeSubscription ??= plantService.reminderChanges.listen(
+      _plantReminderChanged,
+    );
+    return startup;
+  }
+
+  // Keep a recovered tail so one platform failure cannot poison later work.
+  // The returned future still reports failure to explicit callers.
+  Future<T> _enqueue<T>(Future<T> Function() operation) {
+    final result = _pending.then((_) => operation());
+    _pending = result.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {
+        appLogger.error(
+          'reminder_reconciliation_failed',
+          error: error,
+          stackTrace: stack,
+        );
+      },
+    );
+    return result;
+  }
+
+  /// Completes after work already submitted to this coordinator has settled.
+  Future<void> get settled => _pending;
+
   void dispose() {
-    _ready = false;
+    _disposed = true;
     unawaited(_plantChangeSubscription?.cancel());
     _plantChangeSubscription = null;
   }
 
   void _plantReminderChanged(PlantReminderChange change) {
-    if (!_ready) return;
-    if (change.isRemoved) {
-      unawaited(_cancelPlantNotifications(change.plantId));
-      return;
-    }
-    unawaited(_syncPlant(change.plantId));
+    unawaited(
+      _enqueue(() async {
+        if (_disposed) return;
+        // Read current plant state when this operation runs, even for a removal.
+        await _syncPlant(change.plantId);
+      }).catchError((Object _) {}),
+    );
+  }
+
+  /// OS status is refreshed without prompting. Only newly enabled delivery
+  /// reconciles here; ordinary foreground transitions do not move reminders.
+  Future<bool> refreshNotificationPermission() =>
+      _updatePermission(_readPermissions);
+
+  Future<bool> requestNotificationsPermission() =>
+      _updatePermission(_requestPermissions);
+
+  Future<bool> _updatePermission(Future<bool> Function() readOrRequest) async {
+    await start();
+    return _enqueue(() async {
+      if (_disposed) return false;
+      final granted = await readOrRequest();
+      if (_disposed) return false;
+      if (granted && !_permissionGranted) await _syncAllPlants();
+      // A failed reconciliation remains retryable on the next explicit action.
+      _permissionGranted = granted;
+      return granted;
+    });
+  }
+
+  Future<bool> scheduleTestNotification() async {
+    if (!await requestNotificationsPermission()) return false;
+    return _scheduleTestNotification();
   }
 
   Future<void> _syncAllPlants() async {
     plantService.updateStoreState();
-    for (final plant in plantService.plants) {
+    for (final plantId
+        in plantService.plants.map((plant) => plant.id).toList()) {
+      if (_disposed) return;
       await _syncPlant(
-        plant.id,
+        plantId,
         refreshStoreState: false,
         replaceExisting: false,
       );
