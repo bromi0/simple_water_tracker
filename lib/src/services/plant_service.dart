@@ -135,6 +135,8 @@ class PlantService extends ChangeNotifier {
     String name,
     int wateringInterval, {
     Uint8List? pictureBytes,
+    String? roomId,
+    bool updateRoom = false,
   }) async {
     if (!_plants.contains(plant)) throw StateError('Plant no longer exists');
     final normalizedName = name.trim();
@@ -156,16 +158,23 @@ class PlantService extends ChangeNotifier {
     final oldName = plant.name;
     final oldInterval = plant.wateringInterval;
     final oldPicturePath = plant.picturePath;
+    final oldRoomId = plant.roomId;
     plant.name = normalizedName;
     plant.wateringInterval = wateringInterval;
     plant.picturePath = newPicturePath;
+    if (updateRoom) plant.roomId = roomId;
+    final refreshWateringState =
+        plant.name != oldName ||
+        plant.wateringInterval != oldInterval ||
+        plant.picturePath != oldPicturePath;
     try {
-      await _savePlantData();
+      await _savePlantData(refreshWateringState: refreshWateringState);
     } catch (_) {
       plant.name = oldName;
       plant.wateringInterval = oldInterval;
       plant.picturePath = oldPicturePath;
-      updateStoreState();
+      plant.roomId = oldRoomId;
+      if (refreshWateringState) updateStoreState();
       if (newPicturePath != oldPicturePath) {
         await _deleteStoredPicture(newPicturePath);
       }
@@ -176,7 +185,9 @@ class PlantService extends ChangeNotifier {
       // the replacement path has been persisted.
       await _deleteStoredPicture(oldPicturePath);
     }
-    _reminderChanges.add(PlantReminderChange.updated(plant.id));
+    if (refreshWateringState) {
+      _reminderChanges.add(PlantReminderChange.updated(plant.id));
+    }
     notifyListeners();
   }
 

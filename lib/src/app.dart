@@ -58,6 +58,7 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
               plant: plant,
               initialName: recovered.name,
               initialInterval: recovered.interval,
+              initialRoomId: recovered.roomId,
               initialPhotoBytes: recovered.bytes,
             ),
           ),
@@ -162,7 +163,9 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
                     case SampleItemDetailsView.routeName:
                       return const SampleItemDetailsView();
                     case TakePictureScreen.routeName:
-                      return const TakePictureScreen();
+                      return TakePictureScreen(
+                        initialRoomId: routeSettings.arguments as String?,
+                      );
                     case PlantListView.routeName:
                     default:
                       return PlantListView(

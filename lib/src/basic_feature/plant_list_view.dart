@@ -90,7 +90,7 @@ class _PlantListViewState extends State<PlantListView> {
         selection: selection,
         roomName: rooms.roomById(selection.roomId)?.name,
         onAddPlant: () {
-          Navigator.pushNamed(context, TakePictureScreen.routeName);
+          _openAddPlant(selection);
         },
       ),
       bottomNavigationBar: NavigationBar(
@@ -110,7 +110,7 @@ class _PlantListViewState extends State<PlantListView> {
           if (index == 0) {
             _showRoomSelector();
           } else {
-            Navigator.pushNamed(context, TakePictureScreen.routeName);
+            _openAddPlant(selection);
           }
         },
       ),
@@ -140,6 +140,14 @@ class _PlantListViewState extends State<PlantListView> {
       ),
     );
     if (selected != null && mounted) setState(() => _selection = selected);
+  }
+
+  void _openAddPlant(RoomSelection selection) {
+    Navigator.pushNamed(
+      context,
+      TakePictureScreen.routeName,
+      arguments: selection.roomId,
+    );
   }
 }
 

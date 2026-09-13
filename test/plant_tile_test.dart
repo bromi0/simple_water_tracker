@@ -6,6 +6,7 @@ import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_tile.dart';
 import 'package:simple_water_tracker/src/basic_feature/watering_status_presentation.dart';
 import 'package:simple_water_tracker/src/services/plant_service.dart';
+import 'package:simple_water_tracker/src/services/room_service.dart';
 import 'package:simple_water_tracker/src/settings/settings_controller.dart';
 import 'package:simple_water_tracker/src/settings/settings_service.dart';
 
@@ -20,7 +21,9 @@ void main() {
     await store.loaded;
   });
 
-  tearDown(() => store.dispose());
+  tearDown(() {
+    store.dispose();
+  });
 
   testWidgets('row layout keeps one water action and opens the full editor', (
     tester,
@@ -109,13 +112,37 @@ void main() {
       'Fern',
     );
     await tester.tap(find.byTooltip('Increase watering interval'));
-    await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
+    final save = find.widgetWithText(FilledButton, 'Save changes');
+    await tester.dragUntilVisible(
+      save,
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+    await tester.tap(save);
     await tester.pumpAndSettle();
 
     expect(find.text('Could not save this plant.'), findsNothing);
     expect(plant.name, 'Fern');
     expect(plant.wateringInterval, 4);
     expect(find.text('Edit plant'), findsNothing);
+  });
+
+  testWidgets('editor saves a deleted room as unassigned', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 1200);
+    addTearDown(tester.view.reset);
+    final plant = store.plants.first..roomId = 'deleted-room';
+    await _pumpTile(tester, store, plant, PlantTileLayout.row);
+
+    await tester.tap(find.text('Cactus'));
+    await tester.pumpAndSettle();
+    expect(find.text('No room'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
+    await tester.pumpAndSettle();
+
+    expect(plant.roomId, isNull);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('water action becomes undo without showing a snackbar', (
@@ -194,6 +221,7 @@ Future<void> _pumpTile(
         child: MultiProvider(
           providers: [
             ChangeNotifierProvider.value(value: store),
+            ChangeNotifierProvider(create: (_) => RoomService()),
             ChangeNotifierProvider.value(value: settings),
           ],
           child: MaterialApp(

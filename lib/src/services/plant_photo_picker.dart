@@ -9,12 +9,14 @@ class RecoveredPlantPhoto {
     required this.plantId,
     required this.name,
     required this.interval,
+    required this.roomId,
     required this.bytes,
   });
 
   final String plantId;
   final String name;
   final String interval;
+  final String? roomId;
   final Uint8List bytes;
 }
 
@@ -30,13 +32,19 @@ class PlantPhotoPicker {
     required String plantId,
     required String name,
     required String interval,
+    required String? roomId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     // The activity may be reclaimed while the system camera/gallery is open.
     // Remember the target and text draft before leaving Flutter.
     if (!await prefs.setString(
       pendingKey,
-      jsonEncode({'plantId': plantId, 'name': name, 'interval': interval}),
+      jsonEncode({
+        'plantId': plantId,
+        'name': name,
+        'interval': interval,
+        'roomId': roomId,
+      }),
     )) {
       throw StateError('Could not preserve the photo selection');
     }
@@ -71,6 +79,7 @@ class PlantPhotoPicker {
         plantId: draft['plantId'] as String,
         name: draft['name'] as String,
         interval: draft['interval'] as String,
+        roomId: draft['roomId'] as String?,
         bytes: await response.files!.first.readAsBytes(),
       );
     } finally {

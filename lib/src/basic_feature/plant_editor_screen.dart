@@ -8,7 +8,9 @@ import 'package:provider/provider.dart';
 
 import '../services/plant_photo_picker.dart';
 import '../services/plant_service.dart';
+import '../rooms/room_assignment_field.dart';
 import '../settings/settings_controller.dart';
+import '../services/room_service.dart';
 import 'plant_data.dart';
 import 'watering_status_presentation.dart';
 
@@ -19,6 +21,7 @@ class PlantEditorScreen extends StatefulWidget {
     required this.plant,
     this.initialName,
     this.initialInterval,
+    this.initialRoomId,
     this.initialPhotoBytes,
     this.photoPicker,
   });
@@ -26,6 +29,7 @@ class PlantEditorScreen extends StatefulWidget {
   final PlantData plant;
   final String? initialName;
   final String? initialInterval;
+  final String? initialRoomId;
   final Uint8List? initialPhotoBytes;
   final PlantPhotoPicker? photoPicker;
 
@@ -37,6 +41,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
   late final TextEditingController _nameController;
   late int _wateringInterval;
   late Uint8List? _photoBytes;
+  String? _roomId;
   late final PlantPhotoPicker _photoPicker;
   Timer? _undoTimer;
   bool _showUndo = false;
@@ -52,6 +57,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
         int.tryParse(widget.initialInterval ?? '') ??
         widget.plant.wateringInterval;
     _photoBytes = widget.initialPhotoBytes;
+    _roomId = widget.initialRoomId ?? widget.plant.roomId;
     _photoPicker = widget.photoPicker ?? PlantPhotoPicker();
     _scheduleUndoExpiry();
   }
@@ -94,6 +100,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
         plantId: widget.plant.id,
         name: _nameController.text,
         interval: '$_wateringInterval',
+        roomId: _resolvedRoomId(),
       );
       if (bytes != null && mounted) setState(() => _photoBytes = bytes);
     } catch (_) {
@@ -119,6 +126,8 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
         name,
         _wateringInterval,
         pictureBytes: _photoBytes,
+        roomId: _resolvedRoomId(),
+        updateRoom: true,
       );
       if (mounted) Navigator.pop(context);
     } catch (error) {
@@ -249,6 +258,12 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
+              const SizedBox(height: 20),
+              RoomAssignmentField(
+                roomId: _roomId,
+                enabled: !_isSaving,
+                onChanged: (roomId) => setState(() => _roomId = roomId),
+              ),
               const SizedBox(height: 28),
               Text('Watering', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
@@ -294,6 +309,9 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
       ),
     );
   }
+
+  String? _resolvedRoomId() =>
+      context.read<RoomService>().roomById(_roomId)?.id;
 }
 
 class _CurrentWateringStatus extends StatelessWidget {

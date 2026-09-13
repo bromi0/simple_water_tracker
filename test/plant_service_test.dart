@@ -115,6 +115,31 @@ void main() {
   });
 
   test(
+    'saving only a room change from the editor does not rebuild reminders',
+    () async {
+      final service = await createService();
+      final changes = <PlantReminderChange>[];
+      final subscription = service.reminderChanges.listen(changes.add);
+      addTearDown(subscription.cancel);
+      final plant = PlantData(name: 'Fern', waterLevel: 0);
+      await service.add(plant);
+      await Future<void>.delayed(Duration.zero);
+      changes.clear();
+
+      await service.updatePlant(
+        plant,
+        'Fern',
+        3,
+        roomId: 'living-room',
+        updateRoom: true,
+      );
+
+      expect(plant.roomId, 'living-room');
+      expect(changes, isEmpty);
+    },
+  );
+
+  test(
     'a replaced photo is deleted when its plant disappears mid-save',
     () async {
       final saveStarted = Completer<void>();

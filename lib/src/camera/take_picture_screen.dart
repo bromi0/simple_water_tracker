@@ -9,12 +9,15 @@ import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'package:simple_water_tracker/src/helpers/plant_name_generator.dart';
 
 import '../services/plant_service.dart';
+import '../services/room_service.dart';
+import '../rooms/room_assignment_field.dart';
 
 // A screen that allows users to take a picture using a given camera.
 class TakePictureScreen extends StatefulWidget {
-  const TakePictureScreen({super.key});
+  const TakePictureScreen({super.key, this.initialRoomId});
 
   static const routeName = '/camera';
+  final String? initialRoomId;
 
   @override
   State<TakePictureScreen> createState() => _TakePictureScreenState();
@@ -27,9 +30,8 @@ enum _CameraPermissionDecision { granted, needsRequest }
 class _TakePictureScreenState extends State<TakePictureScreen>
     with WidgetsBindingObserver {
   CameraController? _cameraController;
-  final TextEditingController _plantNameController = TextEditingController(
-    text: generateRandomPlantName(),
-  );
+  final TextEditingController _plantNameController = TextEditingController();
+  late final String _suggestedPlantName;
   int _currentWateringIntervalSliderValue = 3;
   _CameraStatus _cameraStatus = _CameraStatus.initializing;
   Future<void>? _cameraDisposal;
@@ -38,10 +40,13 @@ class _TakePictureScreenState extends State<TakePictureScreen>
   bool _cameraPermissionNeeded = false;
   bool _cameraPermissionRequiresSettings = false;
   bool _waitingForPermissionSettings = false;
+  String? _roomId;
 
   @override
   void initState() {
     super.initState();
+    _suggestedPlantName = generateRandomPlantName();
+    _roomId = widget.initialRoomId;
     WidgetsBinding.instance.addObserver(this);
     unawaited(_initializeCamera());
   }
@@ -214,9 +219,12 @@ class _TakePictureScreenState extends State<TakePictureScreen>
 
   PlantData _createPlant() {
     return PlantData(
-      name: _plantNameController.text,
+      name: _plantNameController.text.trim().isEmpty
+          ? _suggestedPlantName
+          : _plantNameController.text,
       waterLevel: 0,
       wateringInterval: _currentWateringIntervalSliderValue,
+      roomId: _resolvedRoomId(),
     );
   }
 
@@ -237,43 +245,49 @@ class _TakePictureScreenState extends State<TakePictureScreen>
   @override
   Widget build(BuildContext context) {
     final PlantService store = Provider.of<PlantService>(context);
-    final sliderTextStyle = Theme.of(context).textTheme.bodyLarge;
     return Scaffold(
       appBar: AppBar(title: const Text('Photo your plant')),
       // You must wait until the controller is initialized before displaying the
       // camera preview. Use a FutureBuilder to display a loading spinner until the
       // controller has finished initializing.
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: TextField(
-              controller: _plantNameController,
-              decoration: const InputDecoration(
-                hintText: 'How should we call the plant?',
-                border: OutlineInputBorder(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _plantNameController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      labelText: 'Plant name',
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
+                      hintText: _suggestedPlantName,
+                      helperText: 'Leave blank to use this suggestion.',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  RoomAssignmentField(
+                    roomId: _roomId,
+                    onChanged: (roomId) => setState(() => _roomId = roomId),
+                  ),
+                  const SizedBox(height: 16),
+                  _WateringIntervalControl(
+                    interval: _currentWateringIntervalSliderValue,
+                    onChanged: (value) => setState(
+                      () => _currentWateringIntervalSliderValue = value,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          Text(
-            'Days between watering: $_currentWateringIntervalSliderValue',
-            style: sliderTextStyle,
-          ),
-          const SizedBox(height: 12.0),
-          Slider(
-            value: _currentWateringIntervalSliderValue.toDouble(),
-            min: 1,
-            max: 20,
-            divisions: 20,
-            onChanged: (double value) {
-              setState(() {
-                _currentWateringIntervalSliderValue = value.toInt();
-              });
-            },
-          ),
-          const SizedBox(height: 24.0),
-          Expanded(child: _buildCameraView(store)),
-        ],
+            const Divider(height: 1),
+            Expanded(child: _buildCameraView(store)),
+          ],
+        ),
       ),
       floatingActionButton: _cameraStatus == _CameraStatus.ready
           ? SizedBox(
@@ -289,6 +303,9 @@ class _TakePictureScreenState extends State<TakePictureScreen>
           : null,
     );
   }
+
+  String? _resolvedRoomId() =>
+      context.read<RoomService>().roomById(_roomId)?.id;
 
   Widget _buildCameraView(PlantService store) {
     switch (_cameraStatus) {
@@ -375,6 +392,44 @@ class _TakePictureScreenState extends State<TakePictureScreen>
       ),
     );
   }
+}
+
+class _WateringIntervalControl extends StatelessWidget {
+  const _WateringIntervalControl({
+    required this.interval,
+    required this.onChanged,
+  });
+
+  final int interval;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Water every $interval ${interval == 1 ? 'day' : 'days'}',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          Slider(
+            value: interval.toDouble(),
+            min: 1,
+            max: 20,
+            divisions: 19,
+            label: '$interval ${interval == 1 ? 'day' : 'days'}',
+            onChanged: (value) => onChanged(value.toInt()),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 // A widget that displays the picture taken by the user.
