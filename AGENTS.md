@@ -12,6 +12,11 @@ cross-cutting changes. Read its linked investigation notes only when relevant.
   and explain the compatibility reason before changing Flutter, Dart, Gradle,
   AGP, Kotlin, Android SDK/NDK, or Java versions. Do not run `flutter upgrade`
   or switch channels.
+- Do not run broad `flutter pub upgrade` or `flutter pub upgrade
+  --major-versions` unless dependency maintenance is explicitly requested.
+- After a successful `flutter pub get`, use `flutter analyze --no-pub` and
+  `flutter test --no-pub` for repeated validation. Use a normal `flutter build`
+  after version changes so Android's generated version values are refreshed.
 - Keep builds resource-conscious: prefer lower peak memory and limited
   parallelism over speed.
 - Diagnose failed commands before changing configuration or adding workarounds.
