@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../basic_feature/watering_status_presentation.dart';
+
 part 'settings_service.g.dart';
 
 /// The two supported presentations of the main plant collection.
@@ -26,10 +28,20 @@ class SettingsService {
     defaultValue: PlantListLayout.rows,
   )
   PlantListLayout _plantListLayout = PlantListLayout.rows;
+  @JsonKey(
+    includeFromJson: true,
+    includeToJson: true,
+    defaultValue: WateringStatusPresentation.informative,
+  )
+  WateringStatusPresentation _wateringStatusPresentation =
+      WateringStatusPresentation.informative;
 
   Future<ThemeMode> themeMode() async => _themeMode;
 
   Future<PlantListLayout> plantListLayout() async => _plantListLayout;
+
+  Future<WateringStatusPresentation> wateringStatusPresentation() async =>
+      _wateringStatusPresentation;
 
   /// Persists the user's preferred ThemeMode to local or remote storage.
   Future<void> updateThemeMode(ThemeMode theme) async {
@@ -39,6 +51,13 @@ class SettingsService {
 
   Future<void> updatePlantListLayout(PlantListLayout layout) async {
     _plantListLayout = layout;
+    await _saveSettingsData();
+  }
+
+  Future<void> updateWateringStatusPresentation(
+    WateringStatusPresentation presentation,
+  ) async {
+    _wateringStatusPresentation = presentation;
     await _saveSettingsData();
   }
 

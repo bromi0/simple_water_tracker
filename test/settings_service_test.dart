@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:simple_water_tracker/src/basic_feature/watering_status_presentation.dart';
 import 'package:simple_water_tracker/src/settings/settings_service.dart';
 
 void main() {
@@ -11,6 +12,10 @@ void main() {
 
     expect(await settings.themeMode(), ThemeMode.dark);
     expect(await settings.plantListLayout(), PlantListLayout.rows);
+    expect(
+      await settings.wateringStatusPresentation(),
+      WateringStatusPresentation.informative,
+    );
   });
 
   test('plant list layout is persisted with the other settings', () async {
@@ -22,4 +27,22 @@ void main() {
 
     expect(await reloaded.plantListLayout(), PlantListLayout.grid);
   });
+
+  test(
+    'watering status presentation is persisted with the other settings',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = SettingsService();
+
+      await settings.updateWateringStatusPresentation(
+        WateringStatusPresentation.simple,
+      );
+      final reloaded = await SettingsService.loadFromPrefs();
+
+      expect(
+        await reloaded.wateringStatusPresentation(),
+        WateringStatusPresentation.simple,
+      );
+    },
+  );
 }

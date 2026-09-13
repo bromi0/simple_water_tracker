@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../basic_feature/watering_status_presentation.dart';
 import 'settings_service.dart';
 
 /// A class that many Widgets can interact with to read user settings, update
@@ -17,10 +18,13 @@ class SettingsController with ChangeNotifier {
   // also persisting the changes with the SettingsService.
   late ThemeMode _themeMode;
   late PlantListLayout _plantListLayout;
+  late WateringStatusPresentation _wateringStatusPresentation;
 
   // Allow Widgets to read the user's preferred ThemeMode.
   ThemeMode get themeMode => _themeMode;
   PlantListLayout get plantListLayout => _plantListLayout;
+  WateringStatusPresentation get wateringStatusPresentation =>
+      _wateringStatusPresentation;
 
   /// Load the user's settings from the SettingsService. It may load from a
   /// local database or the internet. The controller only knows it can load the
@@ -28,6 +32,8 @@ class SettingsController with ChangeNotifier {
   Future<void> loadSettings() async {
     _themeMode = await _settingsService.themeMode();
     _plantListLayout = await _settingsService.plantListLayout();
+    _wateringStatusPresentation = await _settingsService
+        .wateringStatusPresentation();
 
     // Important! Inform listeners a change has occurred.
     notifyListeners();
@@ -54,5 +60,15 @@ class SettingsController with ChangeNotifier {
     _plantListLayout = newLayout;
     notifyListeners();
     await _settingsService.updatePlantListLayout(newLayout);
+  }
+
+  Future<void> updateWateringStatusPresentation(
+    WateringStatusPresentation newPresentation,
+  ) async {
+    if (newPresentation == _wateringStatusPresentation) return;
+
+    _wateringStatusPresentation = newPresentation;
+    notifyListeners();
+    await _settingsService.updateWateringStatusPresentation(newPresentation);
   }
 }

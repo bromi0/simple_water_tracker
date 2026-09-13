@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/reminder_coordinator.dart';
+import '../basic_feature/watering_status_presentation.dart';
 import 'notification_settings.dart';
 import 'settings_controller.dart';
 
@@ -36,6 +37,34 @@ class SettingsView extends StatelessWidget {
                 child: Text('Dark Theme'),
               ),
             ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Watering status',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose whether plant cards include an estimated watering time.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          SegmentedButton<WateringStatusPresentation>(
+            segments: const [
+              ButtonSegment(
+                value: WateringStatusPresentation.simple,
+                label: Text('Simple'),
+              ),
+              ButtonSegment(
+                value: WateringStatusPresentation.informative,
+                label: Text('Informative'),
+              ),
+            ],
+            selected: {controller.wateringStatusPresentation},
+            showSelectedIcon: false,
+            expandedInsets: EdgeInsets.zero,
+            onSelectionChanged: (selected) =>
+                controller.updateWateringStatusPresentation(selected.first),
           ),
           const SizedBox(height: 24),
           NotificationSettings(

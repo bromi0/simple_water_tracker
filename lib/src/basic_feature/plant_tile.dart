@@ -7,16 +7,25 @@ import 'package:provider/provider.dart';
 import '../services/plant_service.dart';
 import 'plant_data.dart';
 import 'plant_editor_screen.dart';
+import 'watering_status_presentation.dart';
 
 /// Selects the visual composition used for an individual plant.
 enum PlantTileLayout { row, grid }
 
 /// Owns shared plant behavior and delegates rendering to the selected layout.
 class PlantTile extends StatefulWidget {
-  const PlantTile({super.key, required this.plant, required this.layout});
+  const PlantTile({
+    super.key,
+    required this.plant,
+    required this.layout,
+    this.estimatedWateringTime,
+    this.presentation = WateringStatusPresentation.informative,
+  });
 
   final PlantData plant;
   final PlantTileLayout layout;
+  final DateTime? estimatedWateringTime;
+  final WateringStatusPresentation presentation;
 
   @override
   State<PlantTile> createState() => _PlantTileState();
@@ -52,7 +61,12 @@ class _PlantTileState extends State<PlantTile> {
 
   @override
   Widget build(BuildContext context) {
-    final status = _PlantStatus.forPlant(context, plant);
+    final status = _PlantStatus.forPlant(
+      context,
+      plant,
+      estimatedWateringTime: widget.estimatedWateringTime,
+      presentation: widget.presentation,
+    );
     return switch (widget.layout) {
       PlantTileLayout.row => _PlantRow(
         key: ValueKey('plant-row-${plant.id}'),
@@ -134,11 +148,11 @@ class _PlantRow extends StatelessWidget {
       child: InkWell(
         onTap: onEdit,
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
-              PlantPhoto(plant: plant, size: 96, borderRadius: 14),
-              const SizedBox(width: 12),
+              PlantPhoto(plant: plant, size: 72, borderRadius: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,57 +160,37 @@ class _PlantRow extends StatelessWidget {
                   children: [
                     Text(
                       plant.name,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      status.label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                    const SizedBox(height: 3),
+                    _StatusText(
+                      status: status,
+                      primaryStyle: theme.textTheme.bodyMedium?.copyWith(
                         color: status.color,
                         fontWeight: FontWeight.w600,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Every ${plant.wateringInterval} ${plant.wateringInterval == 1 ? 'day' : 'days'}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
+                      detailStyle: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Semantics(
                 button: true,
                 label:
                     '${isUndo ? 'Undo watering for' : 'Water'} ${plant.name}',
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton.filledTonal(
-                      onPressed: onWaterOrUndo,
-                      tooltip: isUndo
-                          ? 'Undo watering for ${plant.name}'
-                          : 'Water ${plant.name}',
-                      icon: Icon(isUndo ? Icons.undo : Icons.water_drop),
-                    ),
-                    Text(
-                      isUndo ? 'Undo' : 'Water',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                child: IconButton.filledTonal(
+                  onPressed: onWaterOrUndo,
+                  tooltip: isUndo
+                      ? 'Undo watering for ${plant.name}'
+                      : 'Water ${plant.name}',
+                  icon: Icon(isUndo ? Icons.undo : Icons.water_drop),
                 ),
               ),
             ],
@@ -245,21 +239,13 @@ class _PlantGridCard extends StatelessWidget {
               ),
             ),
           ),
-          Semantics(
-            button: true,
-            label: 'Edit ${plant.name}',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(onTap: onEdit),
-            ),
-          ),
           Positioned(
-            left: 12,
-            right: 12,
-            bottom: 58,
+            left: 10,
+            right: 10,
+            bottom: 60,
             child: Text(
               plant.name,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: Colors.white,
@@ -268,36 +254,74 @@ class _PlantGridCard extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            left: 12,
-            right: 62,
-            bottom: 14,
-            child: Text(
-              status.label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: status.onImageColor,
-                fontWeight: FontWeight.w700,
-                height: 1.15,
-                shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
-              ),
-            ),
+          Semantics(
+            button: true,
+            label: 'Edit ${plant.name}',
+            child: InkWell(onTap: onEdit),
           ),
           Positioned(
-            right: 8,
-            bottom: 8,
-            child: IconButton.filled(
-              onPressed: onWaterOrUndo,
-              tooltip: isUndo
-                  ? 'Undo watering for ${plant.name}'
-                  : 'Water ${plant.name}',
-              icon: Icon(isUndo ? Icons.undo : Icons.water_drop),
-              style: IconButton.styleFrom(
-                minimumSize: const Size.square(48),
-                backgroundColor: status.actionColor,
-                foregroundColor: status.onActionColor,
-              ),
+            left: 10,
+            right: 0,
+            bottom: 0,
+            height: 48,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: IgnorePointer(
+                      child: _StatusText(
+                        status: status,
+                        detailLabel: status.compactDetailLabel,
+                        primaryStyle: theme.textTheme.bodyMedium?.copyWith(
+                          color: status.onImageColor,
+                          fontWeight: FontWeight.w700,
+                          height: 1.15,
+                          shadows: const [
+                            Shadow(blurRadius: 4, color: Colors.black),
+                          ],
+                        ),
+                        detailStyle: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          shadows: const [
+                            Shadow(blurRadius: 4, color: Colors.black),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Semantics(
+                  button: true,
+                  label:
+                      '${isUndo ? 'Undo watering for' : 'Water'} ${plant.name}',
+                  child: Tooltip(
+                    message: isUndo
+                        ? 'Undo watering for ${plant.name}'
+                        : 'Water ${plant.name}',
+                    child: Material(
+                      color: status.actionColor,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: onWaterOrUndo,
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            isUndo ? Icons.undo : Icons.water_drop,
+                            color: status.onActionColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -374,53 +398,102 @@ class _PhotoFallback extends StatelessWidget {
 /// Maps the current water level to concise text and accessible action colors.
 class _PlantStatus {
   const _PlantStatus({
-    required this.label,
+    required this.primaryLabel,
+    required this.detailLabel,
+    required this.compactDetailLabel,
+    required this.semanticsLabel,
     required this.color,
     required this.onImageColor,
     required this.actionColor,
     required this.onActionColor,
   });
 
-  final String label;
+  final String primaryLabel;
+  final String? detailLabel;
+  final String? compactDetailLabel;
+  final String semanticsLabel;
   final Color color;
   final Color onImageColor;
   final Color actionColor;
   final Color onActionColor;
 
-  factory _PlantStatus.forPlant(BuildContext context, PlantData plant) {
+  factory _PlantStatus.forPlant(
+    BuildContext context,
+    PlantData plant, {
+    required DateTime? estimatedWateringTime,
+    required WateringStatusPresentation presentation,
+  }) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    late final String label;
-    late final Color color;
-    if (plant.waterLevel <= plant.wateringThreshold) {
-      label = 'Needs water';
-      color = colors.error;
-    } else if (plant.waterLevel <= plant.wateringThreshold + 20) {
-      label = 'Water soon';
-      color = isDark ? Colors.amber.shade300 : Colors.amber.shade800;
-    } else {
-      label = 'Doing well';
-      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
-    }
+    final wateringStatus = PlantWateringStatus.forPlant(
+      plant,
+      estimatedWateringTime: estimatedWateringTime,
+    );
+    final color = wateringStatus.colorFor(theme);
 
     final actionColor = color;
     final onActionColor =
         ThemeData.estimateBrightnessForColor(actionColor) == Brightness.dark
         ? Colors.white
         : Colors.black;
-    final onImageColor = color == colors.error
-        ? Colors.red.shade200
-        : label == 'Doing well'
-        ? Colors.green.shade200
-        : Colors.amber.shade200;
 
     return _PlantStatus(
-      label: label,
+      primaryLabel: wateringStatus.simpleLabel,
+      detailLabel: presentation == WateringStatusPresentation.informative
+          ? wateringStatus.informativeLabel()
+          : null,
+      compactDetailLabel: presentation == WateringStatusPresentation.informative
+          ? wateringStatus.compactInformativeLabel()
+          : null,
+      semanticsLabel: wateringStatus.semanticsLabel(presentation),
       color: color,
-      onImageColor: onImageColor,
+      onImageColor: wateringStatus.onImageColor(),
       actionColor: actionColor,
       onActionColor: onActionColor,
+    );
+  }
+}
+
+class _StatusText extends StatelessWidget {
+  const _StatusText({
+    required this.status,
+    required this.primaryStyle,
+    required this.detailStyle,
+    this.detailLabel,
+  });
+
+  final _PlantStatus status;
+  final TextStyle? primaryStyle;
+  final TextStyle? detailStyle;
+  final String? detailLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = detailLabel ?? status.detailLabel;
+    return Semantics(
+      label: status.semanticsLabel,
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              status.primaryLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: primaryStyle,
+            ),
+            if (detail case final detail?) ...[
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: detailStyle,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

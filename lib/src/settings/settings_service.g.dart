@@ -14,12 +14,21 @@ SettingsService _$SettingsServiceFromJson(Map<String, dynamic> json) =>
             _$PlantListLayoutEnumMap,
             json['_plantListLayout'],
           ) ??
-          PlantListLayout.rows;
+          PlantListLayout.rows
+      .._wateringStatusPresentation =
+          $enumDecodeNullable(
+            _$WateringStatusPresentationEnumMap,
+            json['_wateringStatusPresentation'],
+          ) ??
+          WateringStatusPresentation.informative;
 
 Map<String, dynamic> _$SettingsServiceToJson(SettingsService instance) =>
     <String, dynamic>{
       '_themeMode': _$ThemeModeEnumMap[instance._themeMode]!,
       '_plantListLayout': _$PlantListLayoutEnumMap[instance._plantListLayout]!,
+      '_wateringStatusPresentation':
+          _$WateringStatusPresentationEnumMap[instance
+              ._wateringStatusPresentation]!,
     };
 
 const _$ThemeModeEnumMap = {
@@ -31,4 +40,9 @@ const _$ThemeModeEnumMap = {
 const _$PlantListLayoutEnumMap = {
   PlantListLayout.rows: 'rows',
   PlantListLayout.grid: 'grid',
+};
+
+const _$WateringStatusPresentationEnumMap = {
+  WateringStatusPresentation.simple: 'simple',
+  WateringStatusPresentation.informative: 'informative',
 };

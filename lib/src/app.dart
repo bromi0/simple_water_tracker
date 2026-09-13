@@ -100,6 +100,7 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
       builder: (BuildContext context, Widget? child) {
         return MultiProvider(
           providers: [
+            ChangeNotifierProvider.value(value: widget.settingsController),
             ChangeNotifierProvider.value(value: _plantService),
             Provider.value(value: _reminderCoordinator),
           ],

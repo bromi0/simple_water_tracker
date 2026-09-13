@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/plant_service.dart';
+import '../settings/settings_controller.dart';
 import '../settings/settings_service.dart';
 import 'plant_tile.dart';
 
@@ -17,6 +18,13 @@ class PlantList extends StatelessWidget {
     return Consumer<PlantService>(
       builder: (context, store, child) {
         final plants = store.plants;
+        final scheduledTimes = {
+          for (final reminder in store.wateringSchedule)
+            reminder.plant.id: reminder.scheduledDateTime,
+        };
+        final presentation = context
+            .watch<SettingsController>()
+            .wateringStatusPresentation;
         if (plants.isEmpty) {
           return _EmptyPlantList(onAddPlant: onAddPlant);
         }
@@ -24,7 +32,9 @@ class PlantList extends StatelessWidget {
         return LayoutBuilder(
           builder: (context, constraints) {
             final useRows =
-                layout == PlantListLayout.rows || constraints.maxWidth < 360;
+                layout == PlantListLayout.rows ||
+                constraints.maxWidth < 360 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.3;
             if (useRows) {
               return ListView.separated(
                 key: const PageStorageKey('plant-row-list'),
@@ -35,17 +45,19 @@ class PlantList extends StatelessWidget {
                   key: ValueKey(plants[index].id),
                   plant: plants[index],
                   layout: PlantTileLayout.row,
+                  estimatedWateringTime: scheduledTimes[plants[index].id],
+                  presentation: presentation,
                 ),
               );
             }
 
             return GridView.builder(
               key: const PageStorageKey('plant-grid-list'),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
+                crossAxisSpacing: 8,
                 childAspectRatio: 0.74,
               ),
               itemCount: plants.length,
@@ -53,6 +65,8 @@ class PlantList extends StatelessWidget {
                 key: ValueKey(plants[index].id),
                 plant: plants[index],
                 layout: PlantTileLayout.grid,
+                estimatedWateringTime: scheduledTimes[plants[index].id],
+                presentation: presentation,
               ),
             );
           },

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../services/reminder_coordinator.dart';
 import '../services/plant_service.dart';
+import '../settings/settings_controller.dart';
+import 'watering_status_presentation.dart';
 
 class ReminderScheduleView extends StatelessWidget {
   const ReminderScheduleView({super.key});
@@ -27,7 +29,12 @@ class ReminderScheduleView extends StatelessWidget {
           if (store.wateringSchedule.isEmpty) {
             return const Center(child: Text('No plants to remind you about.'));
           }
-          return _ReminderCalendar(reminders: store.wateringSchedule);
+          return _ReminderCalendar(
+            reminders: store.wateringSchedule,
+            presentation: context
+                .watch<SettingsController>()
+                .wateringStatusPresentation,
+          );
         },
       ),
     );
@@ -53,9 +60,13 @@ class ReminderScheduleView extends StatelessWidget {
 }
 
 class _ReminderCalendar extends StatelessWidget {
-  const _ReminderCalendar({required this.reminders});
+  const _ReminderCalendar({
+    required this.reminders,
+    required this.presentation,
+  });
 
   final List<ExpectedWateringTime> reminders;
+  final WateringStatusPresentation presentation;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +90,11 @@ class _ReminderCalendar extends StatelessWidget {
         for (final entry in grouped.entries) ...[
           _DateHeading(date: entry.key, today: today),
           for (final reminder in entry.value)
-            _ReminderCard(reminder: reminder, now: now),
+            _ReminderCard(
+              reminder: reminder,
+              now: now,
+              presentation: presentation,
+            ),
           const SizedBox(height: 12),
         ],
       ],
@@ -173,30 +188,59 @@ class _DateHeading extends StatelessWidget {
 }
 
 class _ReminderCard extends StatelessWidget {
-  const _ReminderCard({required this.reminder, required this.now});
+  const _ReminderCard({
+    required this.reminder,
+    required this.now,
+    required this.presentation,
+  });
 
   final ExpectedWateringTime reminder;
   final DateTime now;
+  final WateringStatusPresentation presentation;
 
   @override
   Widget build(BuildContext context) {
-    final isDue = !reminder.scheduledDateTime.isAfter(now);
+    final status = PlantWateringStatus.forPlant(
+      reminder.plant,
+      estimatedWateringTime: reminder.scheduledDateTime,
+      now: now,
+    );
     final time = reminder.scheduledDateTime.toLocal();
-    final timeLabel = isDue
-        ? 'Needs attention'
+    final timeLabel = status.state == PlantWateringState.needsWater
+        ? 'Water now'
         : '${time.hour.toString().padLeft(2, '0')}:'
               '${time.minute.toString().padLeft(2, '0')}';
+    final theme = Theme.of(context);
+    final statusColor = status.colorFor(theme);
     return Card(
       elevation: 0,
-      color: reminder.plant.color.withAlpha(35),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: reminder.plant.color,
-          child: const Icon(Icons.water_drop_outlined),
+      color: statusColor.withAlpha(28),
+      child: Semantics(
+        label:
+            '${reminder.plant.name}, ${status.semanticsLabel(presentation, now: now)}',
+        child: ExcludeSemantics(
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: statusColor,
+              foregroundColor:
+                  ThemeData.estimateBrightnessForColor(statusColor) ==
+                      Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+              child: const Icon(Icons.water_drop_outlined),
+            ),
+            title: Text(reminder.plant.name),
+            subtitle: Text(
+              status.simpleLabel,
+              style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
+            ),
+            trailing: Text(
+              presentation == WateringStatusPresentation.informative
+                  ? status.informativeLabel(now: now)
+                  : timeLabel,
+            ),
+          ),
         ),
-        title: Text(reminder.plant.name),
-        subtitle: Text('${reminder.plant.waterLevel}% water remaining'),
-        trailing: Text(timeLabel),
       ),
     );
   }

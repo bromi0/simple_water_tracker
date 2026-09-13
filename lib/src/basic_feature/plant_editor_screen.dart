@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 
 import '../services/plant_photo_picker.dart';
 import '../services/plant_service.dart';
+import '../settings/settings_controller.dart';
 import 'plant_data.dart';
+import 'watering_status_presentation.dart';
 
 /// A full-screen editor so a plant's photo and care details have one home.
 class PlantEditorScreen extends StatefulWidget {
@@ -159,6 +161,18 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final store = context.watch<PlantService>();
+    final presentation = context
+        .watch<SettingsController>()
+        .wateringStatusPresentation;
+    final estimatedWateringTime = store.wateringSchedule
+        .where((reminder) => reminder.plant.id == widget.plant.id)
+        .map((reminder) => reminder.scheduledDateTime)
+        .firstOrNull;
+    final wateringStatus = PlantWateringStatus.forPlant(
+      widget.plant,
+      estimatedWateringTime: estimatedWateringTime,
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('Edit plant')),
       body: SafeArea(
@@ -171,6 +185,11 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                 plant: widget.plant,
                 photoBytes: _photoBytes,
                 onChangePhoto: _isSaving ? null : _changePhoto,
+              ),
+              const SizedBox(height: 20),
+              _CurrentWateringStatus(
+                status: wateringStatus,
+                presentation: presentation,
               ),
               const SizedBox(height: 32),
               TextField(
@@ -236,6 +255,58 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                 onTap: _isSaving ? null : _deletePlant,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CurrentWateringStatus extends StatelessWidget {
+  const _CurrentWateringStatus({
+    required this.status,
+    required this.presentation,
+  });
+
+  final PlantWateringStatus status;
+  final WateringStatusPresentation presentation;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColor = status.colorFor(theme);
+    return Semantics(
+      label: 'Current watering status: ${status.semanticsLabel(presentation)}',
+      child: ExcludeSemantics(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: statusColor.withAlpha(24),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Current watering status',
+                  style: theme.textTheme.labelLarge,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  status.simpleLabel,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (presentation == WateringStatusPresentation.informative)
+                  Text(
+                    status.informativeLabel(),
+                    style: theme.textTheme.bodyMedium,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

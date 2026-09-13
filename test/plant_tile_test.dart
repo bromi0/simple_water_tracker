@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_tile.dart';
+import 'package:simple_water_tracker/src/basic_feature/watering_status_presentation.dart';
 import 'package:simple_water_tracker/src/services/plant_service.dart';
+import 'package:simple_water_tracker/src/settings/settings_controller.dart';
+import 'package:simple_water_tracker/src/settings/settings_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +35,8 @@ void main() {
 
     await _pumpTile(tester, store, plant, PlantTileLayout.row);
 
-    expect(find.text('Water'), findsOneWidget);
+    expect(find.text('Water'), findsNothing);
+    expect(find.byTooltip('Water ${plant.name}'), findsOneWidget);
     expect(find.byTooltip('More actions for ${plant.name}'), findsNothing);
     expect(tester.takeException(), isNull);
 
@@ -41,6 +45,7 @@ void main() {
 
     expect(find.text('Edit plant'), findsOneWidget);
     expect(find.byTooltip('Change photo'), findsOneWidget);
+    expect(find.text('Current watering status'), findsOneWidget);
     expect(find.text('Save changes'), findsOneWidget);
     expect(find.text('Delete plant'), findsOneWidget);
 
@@ -62,8 +67,17 @@ void main() {
       expect(find.bySemanticsLabel('Edit Cactus'), findsOneWidget);
       expect(find.byTooltip('Water Cactus'), findsOneWidget);
       expect(find.byTooltip('More actions for Cactus'), findsNothing);
-      expect(find.text('80%'), findsNothing);
+      expect(find.text('Doing well'), findsOneWidget);
+      expect(find.text('~33h'), findsOneWidget);
       expect(tester.takeException(), isNull);
+
+      final action = tester.getRect(find.byTooltip('Water Cactus'));
+      final status = tester.getRect(find.text('Doing well'));
+      expect(status.right, lessThanOrEqualTo(action.left));
+      final card = tester.getRect(
+        find.byKey(ValueKey('plant-grid-${plant.id}')),
+      );
+      expect(action.bottom, card.bottom);
 
       await tester.tap(find.bySemanticsLabel('Edit Cactus'));
       await tester.pumpAndSettle();
@@ -132,31 +146,60 @@ void main() {
 
     expect(find.byTooltip('Water Cactus'), findsOneWidget);
   });
+
+  testWidgets('simple presentation omits the estimated watering time', (
+    tester,
+  ) async {
+    final plant = PlantData(name: 'Cactus', waterLevel: 80);
+
+    await _pumpTile(
+      tester,
+      store,
+      plant,
+      PlantTileLayout.grid,
+      presentation: WateringStatusPresentation.simple,
+    );
+
+    expect(find.text('Doing well'), findsOneWidget);
+    expect(find.textContaining('Water in ~'), findsNothing);
+  });
 }
 
 Future<void> _pumpTile(
   WidgetTester tester,
   PlantService store,
   PlantData plant,
-  PlantTileLayout layout,
-) {
-  final tile = PlantTile(plant: plant, layout: layout);
-  return tester.pumpWidget(
-    MediaQuery(
-      data: const MediaQueryData(
-        size: Size(393, 800),
-        textScaler: TextScaler.linear(1.25),
-      ),
-      child: ChangeNotifierProvider.value(
-        value: store,
-        child: MaterialApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: layout == PlantTileLayout.grid ? 175 : 393,
-                height: layout == PlantTileLayout.grid ? 237 : null,
-                child: tile,
+  PlantTileLayout layout, {
+  WateringStatusPresentation presentation =
+      WateringStatusPresentation.informative,
+}) {
+  final tile = PlantTile(
+    plant: plant,
+    layout: layout,
+    presentation: presentation,
+  );
+  final settings = SettingsController(SettingsService());
+  return settings.loadSettings().then(
+    (_) => tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(
+          size: Size(393, 800),
+          textScaler: TextScaler.linear(1.25),
+        ),
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: store),
+            ChangeNotifierProvider.value(value: settings),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: layout == PlantTileLayout.grid ? 175 : 393,
+                  height: layout == PlantTileLayout.grid ? 237 : null,
+                  child: tile,
+                ),
               ),
             ),
           ),
