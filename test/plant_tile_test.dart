@@ -45,9 +45,14 @@ void main() {
 
     expect(find.text('Edit plant'), findsOneWidget);
     expect(find.byTooltip('Change photo'), findsOneWidget);
-    expect(find.text('Current watering status'), findsOneWidget);
+    expect(find.text('Current watering status'), findsNothing);
     expect(find.text('Save changes'), findsOneWidget);
-    expect(find.text('Delete plant'), findsOneWidget);
+    expect(find.byTooltip('Delete plant'), findsOneWidget);
+    expect(find.byTooltip('Water ${plant.name}'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Water ${plant.name}'));
+    await tester.pump();
+    expect(find.byTooltip('Undo watering for ${plant.name}'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Change photo'));
     await tester.pumpAndSettle();

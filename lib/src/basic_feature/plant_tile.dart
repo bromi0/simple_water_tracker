@@ -148,7 +148,7 @@ class _PlantRow extends StatelessWidget {
       child: InkWell(
         onTap: onEdit,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             children: [
               PlantPhoto(plant: plant, size: 72, borderRadius: 12),
@@ -185,11 +185,15 @@ class _PlantRow extends StatelessWidget {
                 button: true,
                 label:
                     '${isUndo ? 'Undo watering for' : 'Water'} ${plant.name}',
-                child: IconButton.filledTonal(
+                child: IconButton.filled(
                   onPressed: onWaterOrUndo,
                   tooltip: isUndo
                       ? 'Undo watering for ${plant.name}'
                       : 'Water ${plant.name}',
+                  style: IconButton.styleFrom(
+                    backgroundColor: status.actionColor,
+                    foregroundColor: status.onActionColor,
+                  ),
                   icon: Icon(isUndo ? Icons.undo : Icons.water_drop),
                 ),
               ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -37,6 +38,8 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
   late int _wateringInterval;
   late Uint8List? _photoBytes;
   late final PlantPhotoPicker _photoPicker;
+  Timer? _undoTimer;
+  bool _showUndo = false;
   bool _isSaving = false;
 
   @override
@@ -50,10 +53,12 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
         widget.plant.wateringInterval;
     _photoBytes = widget.initialPhotoBytes;
     _photoPicker = widget.photoPicker ?? PlantPhotoPicker();
+    _scheduleUndoExpiry();
   }
 
   @override
   void dispose() {
+    _undoTimer?.cancel();
     _nameController.dispose();
     super.dispose();
   }
@@ -158,6 +163,33 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
     }
   }
 
+  Future<void> _waterOrUndo() async {
+    if (_isSaving) return;
+    final store = context.read<PlantService>();
+    if (_showUndo) {
+      await store.undoWaterPlant(widget.plant);
+      _undoTimer?.cancel();
+      if (mounted) setState(() => _showUndo = false);
+      return;
+    }
+
+    if (widget.plant.waterLevel >= 100) return;
+    await store.waterPlant(widget.plant);
+    if (!mounted) return;
+    _scheduleUndoExpiry();
+    setState(() {});
+  }
+
+  void _scheduleUndoExpiry() {
+    _undoTimer?.cancel();
+    final remaining = widget.plant.undoWateringTimeRemaining();
+    _showUndo = remaining != null;
+    if (remaining == null) return;
+    _undoTimer = Timer(remaining, () {
+      if (mounted) setState(() => _showUndo = false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -174,7 +206,17 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
       estimatedWateringTime: estimatedWateringTime,
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit plant')),
+      appBar: AppBar(
+        title: const Text('Edit plant'),
+        actions: [
+          IconButton(
+            onPressed: _isSaving ? null : _deletePlant,
+            tooltip: 'Delete plant',
+            color: theme.colorScheme.error,
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -190,6 +232,12 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
               _CurrentWateringStatus(
                 status: wateringStatus,
                 presentation: presentation,
+                plantName: widget.plant.name,
+                isUndo: _showUndo,
+                onWaterOrUndo:
+                    _isSaving || (!_showUndo && widget.plant.waterLevel >= 100)
+                    ? null
+                    : _waterOrUndo,
               ),
               const SizedBox(height: 32),
               TextField(
@@ -240,20 +288,6 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                       )
                     : const Text('Save changes'),
               ),
-              const SizedBox(height: 28),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  Icons.delete_outline,
-                  color: theme.colorScheme.error,
-                ),
-                title: Text(
-                  'Delete plant',
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-                onTap: _isSaving ? null : _deletePlant,
-              ),
             ],
           ),
         ),
@@ -266,47 +300,75 @@ class _CurrentWateringStatus extends StatelessWidget {
   const _CurrentWateringStatus({
     required this.status,
     required this.presentation,
+    required this.plantName,
+    required this.isUndo,
+    required this.onWaterOrUndo,
   });
 
   final PlantWateringStatus status;
   final WateringStatusPresentation presentation;
+  final String plantName;
+  final bool isUndo;
+  final VoidCallback? onWaterOrUndo;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final statusColor = status.colorFor(theme);
     return Semantics(
-      label: 'Current watering status: ${status.semanticsLabel(presentation)}',
-      child: ExcludeSemantics(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: statusColor.withAlpha(24),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Current watering status',
-                  style: theme.textTheme.labelLarge,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  status.simpleLabel,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.w700,
+      label: 'Watering status: ${status.semanticsLabel(presentation)}',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: statusColor.withAlpha(24),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: ExcludeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        status.simpleLabel,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (presentation ==
+                          WateringStatusPresentation.informative)
+                        Text(
+                          status.informativeLabel(),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                    ],
                   ),
                 ),
-                if (presentation == WateringStatusPresentation.informative)
-                  Text(
-                    status.informativeLabel(),
-                    style: theme.textTheme.bodyMedium,
+              ),
+              Semantics(
+                button: true,
+                label: '${isUndo ? 'Undo watering for' : 'Water'} $plantName',
+                child: IconButton.filled(
+                  onPressed: onWaterOrUndo,
+                  tooltip: isUndo
+                      ? 'Undo watering for $plantName'
+                      : 'Water $plantName',
+                  style: IconButton.styleFrom(
+                    backgroundColor: statusColor,
+                    foregroundColor:
+                        ThemeData.estimateBrightnessForColor(statusColor) ==
+                            Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
                   ),
-              ],
-            ),
+                  icon: Icon(isUndo ? Icons.undo : Icons.water_drop),
+                ),
+              ),
+            ],
           ),
         ),
       ),
