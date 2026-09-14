@@ -8,6 +8,7 @@ import '../services/plant_service.dart';
 import 'plant_data.dart';
 import 'plant_editor_screen.dart';
 import 'watering_status_presentation.dart';
+import '../localization/app_localizations.dart';
 
 /// Selects the visual composition used for an individual plant.
 enum PlantTileLayout { row, grid }
@@ -140,6 +141,7 @@ class _PlantRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
@@ -183,13 +185,14 @@ class _PlantRow extends StatelessWidget {
               const SizedBox(width: 4),
               Semantics(
                 button: true,
-                label:
-                    '${isUndo ? 'Undo watering for' : 'Water'} ${plant.name}',
+                label: isUndo
+                    ? l10n.undoWaterPlant(plant.name)
+                    : l10n.waterPlant(plant.name),
                 child: IconButton.filled(
                   onPressed: onWaterOrUndo,
                   tooltip: isUndo
-                      ? 'Undo watering for ${plant.name}'
-                      : 'Water ${plant.name}',
+                      ? l10n.undoWaterPlant(plant.name)
+                      : l10n.waterPlant(plant.name),
                   style: IconButton.styleFrom(
                     backgroundColor: status.actionColor,
                     foregroundColor: status.onActionColor,
@@ -224,6 +227,7 @@ class _PlantGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Material(
       color: theme.colorScheme.surfaceContainerLow,
@@ -260,7 +264,7 @@ class _PlantGridCard extends StatelessWidget {
           ),
           Semantics(
             button: true,
-            label: 'Edit ${plant.name}',
+            label: l10n.editNamedPlant(plant.name),
             child: InkWell(onTap: onEdit),
           ),
           Positioned(
@@ -299,12 +303,13 @@ class _PlantGridCard extends StatelessWidget {
                 ),
                 Semantics(
                   button: true,
-                  label:
-                      '${isUndo ? 'Undo watering for' : 'Water'} ${plant.name}',
+                  label: isUndo
+                      ? l10n.undoWaterPlant(plant.name)
+                      : l10n.waterPlant(plant.name),
                   child: Tooltip(
                     message: isUndo
-                        ? 'Undo watering for ${plant.name}'
-                        : 'Water ${plant.name}',
+                        ? l10n.undoWaterPlant(plant.name)
+                        : l10n.waterPlant(plant.name),
                     child: Material(
                       color: status.actionColor,
                       borderRadius: const BorderRadius.only(
@@ -379,6 +384,7 @@ class _PhotoFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final foreground =
         ThemeData.estimateBrightnessForColor(plant.color) == Brightness.dark
         ? Colors.white
@@ -391,8 +397,8 @@ class _PhotoFallback extends StatelessWidget {
           size: 42,
           color: foreground,
           semanticLabel: didFail
-              ? 'Photo unavailable'
-              : 'No photo for ${plant.name}',
+              ? l10n.photoUnavailable
+              : l10n.noPlantPhoto(plant.name),
         ),
       ),
     );
@@ -441,14 +447,19 @@ class _PlantStatus {
         : Colors.black;
 
     return _PlantStatus(
-      primaryLabel: wateringStatus.simpleLabel,
+      primaryLabel: wateringStatus.simpleLabel(AppLocalizations.of(context)!),
       detailLabel: presentation == WateringStatusPresentation.informative
-          ? wateringStatus.informativeLabel()
+          ? wateringStatus.informativeLabel(AppLocalizations.of(context)!)
           : null,
       compactDetailLabel: presentation == WateringStatusPresentation.informative
-          ? wateringStatus.compactInformativeLabel()
+          ? wateringStatus.compactInformativeLabel(
+              AppLocalizations.of(context)!,
+            )
           : null,
-      semanticsLabel: wateringStatus.semanticsLabel(presentation),
+      semanticsLabel: wateringStatus.semanticsLabel(
+        AppLocalizations.of(context)!,
+        presentation,
+      ),
       color: color,
       onImageColor: wateringStatus.onImageColor(),
       actionColor: actionColor,

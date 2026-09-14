@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../services/reminder_coordinator.dart';
 import '../services/plant_service.dart';
 import '../settings/settings_controller.dart';
 import 'watering_status_presentation.dart';
+import '../localization/app_localizations.dart';
 
 class ReminderScheduleView extends StatelessWidget {
   const ReminderScheduleView({super.key});
@@ -13,13 +15,14 @@ class ReminderScheduleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Watering week'),
+        title: Text(l10n.wateringWeek),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_active_outlined),
-            tooltip: 'Test notification in one minute',
+            tooltip: l10n.testNotificationTooltip,
             onPressed: () => _scheduleTest(context),
           ),
         ],
@@ -27,7 +30,7 @@ class ReminderScheduleView extends StatelessWidget {
       body: Consumer<PlantService>(
         builder: (context, store, child) {
           if (store.wateringSchedule.isEmpty) {
-            return const Center(child: Text('No plants to remind you about.'));
+            return Center(child: Text(l10n.noReminders));
           }
           return _ReminderCalendar(
             reminders: store.wateringSchedule,
@@ -41,18 +44,21 @@ class ReminderScheduleView extends StatelessWidget {
   }
 
   Future<void> _scheduleTest(BuildContext context) async {
-    String message;
+    bool? scheduled;
     try {
-      final scheduled = await context
+      scheduled = await context
           .read<ReminderCoordinator>()
           .scheduleTestNotification();
-      message = scheduled
-          ? 'Test reminder scheduled for one minute from now.'
-          : 'Notifications are off or unavailable. Check notification settings.';
     } catch (_) {
-      message = 'Could not schedule a test reminder. Try again.';
+      // Resolve the message after the await so it uses the current locale.
     }
     if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final message = switch (scheduled) {
+      true => l10n.testReminderScheduled,
+      false => l10n.notificationsOff,
+      null => l10n.testReminderFailed,
+    };
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -111,10 +117,9 @@ class _WeekStrip extends StatelessWidget {
   final List<DateTime> days;
   final Map<DateTime, List<ExpectedWateringTime>> grouped;
 
-  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         for (final day in days)
@@ -132,15 +137,15 @@ class _WeekStrip extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      _weekdays[day.weekday - 1],
+                      DateFormat.E(l10n.localeName).format(day),
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
-                    Text('${day.day}'),
+                    Text(DateFormat.d(l10n.localeName).format(day)),
                     const SizedBox(height: 4),
                     CircleAvatar(
                       radius: 9,
                       child: Text(
-                        '${grouped[day]?.length ?? 0}',
+                        l10n.visibleCount(grouped[day]?.length ?? 0),
                         style: Theme.of(context).textTheme.labelSmall,
                       ),
                     ),
@@ -160,26 +165,12 @@ class _DateHeading extends StatelessWidget {
   final DateTime date;
   final DateTime today;
 
-  static const _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final label = date == today
-        ? 'Today'
-        : '${_months[date.month - 1]} ${date.day}';
+        ? l10n.today
+        : DateFormat.MMMMd(l10n.localeName).format(date);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 6),
       child: Text(label, style: Theme.of(context).textTheme.titleMedium),
@@ -200,6 +191,7 @@ class _ReminderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final status = PlantWateringStatus.forPlant(
       reminder.plant,
       estimatedWateringTime: reminder.scheduledDateTime,
@@ -207,38 +199,60 @@ class _ReminderCard extends StatelessWidget {
     );
     final time = reminder.scheduledDateTime.toLocal();
     final timeLabel = status.state == PlantWateringState.needsWater
-        ? 'Water now'
-        : '${time.hour.toString().padLeft(2, '0')}:'
-              '${time.minute.toString().padLeft(2, '0')}';
+        ? l10n.waterNow
+        : MaterialLocalizations.of(context).formatTimeOfDay(
+            TimeOfDay.fromDateTime(time),
+            alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+          );
     final theme = Theme.of(context);
     final statusColor = status.colorFor(theme);
     return Card(
       elevation: 0,
       color: statusColor.withAlpha(28),
       child: Semantics(
-        label:
-            '${reminder.plant.name}, ${status.semanticsLabel(presentation, now: now)}',
+        label: l10n.namedWateringStatus(
+          reminder.plant.name,
+          status.semanticsLabel(l10n, presentation, now: now),
+        ),
         child: ExcludeSemantics(
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: statusColor,
-              foregroundColor:
-                  ThemeData.estimateBrightnessForColor(statusColor) ==
-                      Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
-              child: const Icon(Icons.water_drop_outlined),
-            ),
-            title: Text(reminder.plant.name),
-            subtitle: Text(
-              status.simpleLabel,
-              style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
-            ),
-            trailing: Text(
-              presentation == WateringStatusPresentation.informative
-                  ? status.informativeLabel(now: now)
-                  : timeLabel,
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Long translations and large text need the full line width.
+              final stackDetail =
+                  constraints.maxWidth < 400 ||
+                  MediaQuery.textScalerOf(context).scale(1) > 1.3;
+              final detail =
+                  presentation == WateringStatusPresentation.informative
+                  ? status.informativeLabel(l10n, now: now)
+                  : timeLabel;
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: statusColor,
+                  foregroundColor:
+                      ThemeData.estimateBrightnessForColor(statusColor) ==
+                          Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                  child: const Icon(Icons.water_drop_outlined),
+                ),
+                title: Text(reminder.plant.name),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      status.simpleLabel(l10n),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (stackDetail) Text(detail),
+                  ],
+                ),
+                trailing: stackDetail ? null : Text(detail),
+              );
+            },
           ),
         ),
       ),

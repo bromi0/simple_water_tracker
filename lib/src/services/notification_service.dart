@@ -8,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../observability/app_observability.dart';
+import '../localization/app_localizations.dart';
 import 'android_notification_permissions.dart';
 
 class NotificationService {
@@ -75,8 +76,10 @@ class NotificationService {
   static Future<bool> zonedScheduleNotification({
     required int id,
     required DateTime dt,
-    String title = 'default title',
-    String body = 'default body',
+    required String title,
+    required String body,
+    required String channelName,
+    required String channelDescription,
     Duration? timeoutAfter,
   }) async {
     if (!_notificationsEnabled) return false;
@@ -87,9 +90,10 @@ class NotificationService {
     }
     final androidNotificationDetails = AndroidNotificationDetails(
       AndroidNotificationPermissions.channelId,
-      'Water time notifications',
-      channelDescription: 'The notifications reminding to water your plants.',
+      channelName,
+      channelDescription: channelDescription,
       importance: Importance.high,
+      channelAction: AndroidNotificationChannelAction.update,
       timeoutAfter: timeoutAfter?.inMilliseconds,
     );
     final notificationDetails = NotificationDetails(
@@ -128,6 +132,8 @@ class NotificationService {
         dt: note.deliveryTime,
         title: note.title,
         body: note.body,
+        channelName: note.channelName,
+        channelDescription: note.channelDescription,
         timeoutAfter: note.timeoutAfter,
       );
     }
@@ -187,13 +193,15 @@ class NotificationService {
     return _notificationsEnabled;
   }
 
-  static Future<bool> scheduleTestNotification() async {
+  static Future<bool> scheduleTestNotification(AppLocalizations l10n) async {
     if (!_notificationsEnabled) return false;
     return zonedScheduleNotification(
       id: 999,
       dt: DateTime.now().add(const Duration(minutes: 1)),
-      title: 'Watering reminder test',
-      body: 'Notifications are working.',
+      title: l10n.testNotificationTitle,
+      body: l10n.testNotificationBody,
+      channelName: l10n.notificationChannelName,
+      channelDescription: l10n.notificationChannelDescription,
     );
   }
 
@@ -214,6 +222,8 @@ class WateringNotification {
     required this.deliveryTime,
     required this.title,
     required this.body,
+    required this.channelName,
+    required this.channelDescription,
     this.timeoutAfter,
   });
 
@@ -222,6 +232,8 @@ class WateringNotification {
   final DateTime deliveryTime;
   final String title;
   final String body;
+  final String channelName;
+  final String channelDescription;
   final Duration? timeoutAfter;
 }
 

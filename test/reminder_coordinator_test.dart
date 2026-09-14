@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_water_tracker/src/basic_feature/plant_data.dart';
+import 'package:simple_water_tracker/src/localization/app_localizations.dart';
 import 'package:simple_water_tracker/src/services/notification_service.dart';
 import 'package:simple_water_tracker/src/services/package_replacement_recovery.dart';
 import 'package:simple_water_tracker/src/services/plant_service.dart';
@@ -161,10 +163,10 @@ void main() {
     await entered.future;
     await service.updatePlant(service.plants.single, 'Latest', 3);
     await Future<void>.delayed(Duration.zero);
-    expect(names, ['First']);
+    expect(names, ['Water First']);
     release.complete();
     await coordinator.settled;
-    expect(names, ['First', 'Latest']);
+    expect(names, ['Water First', 'Water Latest']);
   });
 
   for (final testAction in [false, true]) {
@@ -191,7 +193,7 @@ void main() {
             },
             replacePlantNotifications: (_, _) async =>
                 fail('must preserve alerts'),
-            scheduleTestNotification: () async {
+            scheduleTestNotification: (_) async {
               tests++;
               return true;
             },
@@ -233,7 +235,7 @@ void main() {
       schedulePlantNotifications: (_, _) async {
         schedules++;
       },
-      scheduleTestNotification: () async => true,
+      scheduleTestNotification: (_) async => true,
     );
     addTearDown(coordinator.dispose);
     await coordinator.start();
@@ -288,6 +290,29 @@ void main() {
     );
     coordinator.dispose();
     plantService.dispose();
+  });
+
+  test('uses generated Russian copy for reminder title and body', () async {
+    final plant = PlantData(id: 'ru-plant', name: 'Папоротник', waterLevel: 0);
+    SharedPreferences.setMockInitialValues({
+      'water_plant_data_key': jsonEncode([plant.toJson()]),
+    });
+    final scheduled = <WateringNotification>[];
+    final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
+    final service = PlantService();
+    final coordinator = ReminderCoordinator(
+      plantService: service,
+      initializeNotifications: () async {},
+      readPermissions: () async => false,
+      loadLocalizations: () async => l10n,
+      schedulePlantNotifications: (_, notes) async => scheduled.addAll(notes),
+    );
+    await coordinator.start();
+    expect(scheduled.first.title, 'Полейте: Папоротник');
+    expect(scheduled.first.body, 'Растению нужен полив.');
+    expect(scheduled.first.channelName, 'Напоминания о поливе');
+    coordinator.dispose();
+    service.dispose();
   });
 
   test('cancels only removed plant reminder slots', () async {

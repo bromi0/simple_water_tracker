@@ -1,3 +1,4 @@
+import 'package:simple_water_tracker/src/localization/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +36,12 @@ void main() {
             ChangeNotifierProvider.value(value: store),
             ChangeNotifierProvider.value(value: settings),
           ],
-          child: const MaterialApp(home: ReminderScheduleView()),
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const ReminderScheduleView(),
+          ),
         ),
       );
 

@@ -8,6 +8,7 @@ part of 'settings_service.dart';
 
 SettingsService _$SettingsServiceFromJson(Map<String, dynamic> json) =>
     SettingsService()
+      .._localeTag = json['_localeTag'] as String?
       .._themeMode = $enumDecode(_$ThemeModeEnumMap, json['_themeMode'])
       .._plantListLayout =
           $enumDecodeNullable(
@@ -24,6 +25,7 @@ SettingsService _$SettingsServiceFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$SettingsServiceToJson(SettingsService instance) =>
     <String, dynamic>{
+      '_localeTag': instance._localeTag,
       '_themeMode': _$ThemeModeEnumMap[instance._themeMode]!,
       '_plantListLayout': _$PlantListLayoutEnumMap[instance._plantListLayout]!,
       '_wateringStatusPresentation':

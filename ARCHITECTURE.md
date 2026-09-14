@@ -100,8 +100,29 @@ between rows and grid cards; the editor has its own preview.
 owns theme and row/grid preferences. `settings/notification_settings.dart` shows
 OS-owned notification status, offers permission requests or Android settings,
 and sends permission transitions through the reminder coordinator. It keeps
-permission errors separate from reminder scheduling errors. Localization ARB sources and generated classes are under
-`localization/`.
+permission errors separate from reminder scheduling errors.
+
+Localization ARB sources and generated classes are under `localization/`.
+Widgets consume `AppLocalizations` directly; the generated delegate and locale
+lists configure the application. English is the fallback, Russian is supported,
+and Settings offers System default, English, and Russian. A nullable language tag
+is stored with the existing settings and restored before the first frame;
+`SettingsController.locale` drives `MaterialApp.locale` without recreating app
+services or navigation. `basic_feature/watering_status_presentation.dart` accepts
+generated messages for shared visual and spoken watering estimates; schedule
+dates use `intl` and time display respects the device's 12/24-hour preference.
+Room validation exposes stable failure reasons, translated by its UI.
+Random plant names are complete localized phrases selected once per creation
+draft. Saved plant and room names are never translated or renamed.
+
+Notification rendering receives generated messages from `ReminderCoordinator`.
+Foreground scheduling follows the active app language; headless
+package-replacement recovery reads the persisted language override. Android
+channel metadata is updated with the rendered language when a notification is
+scheduled. Existing OS-scheduled alerts retain their previously rendered copy
+until reminder reconciliation replaces them.
+See [localization milestones](docs/localization_plan.md) for the Russian and
+notification rollout and device-review checkpoints.
 
 `android/` contains permissions, notification receivers, and Android build
 settings. `web/` is the web host shell. Keep platform delivery policy out of

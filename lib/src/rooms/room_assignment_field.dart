@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/room_service.dart';
+import '../localization/app_localizations.dart';
 
 /// A room field for plant drafts. It avoids a platform dropdown so room names
 /// stay aligned and the choice has enough space on narrow screens.
@@ -19,11 +20,12 @@ class RoomAssignmentField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final rooms = context.watch<RoomService>();
-    final label = rooms.roomById(roomId)?.name ?? 'No room';
+    final label = rooms.roomById(roomId)?.name ?? l10n.noRoom;
     return Semantics(
       button: enabled,
-      label: 'Room, $label, change room',
+      label: l10n.roomAssignmentSemantics(label),
       child: InkWell(
         onTap: !enabled
             ? null
@@ -41,8 +43,8 @@ class RoomAssignmentField extends StatelessWidget {
               },
         borderRadius: BorderRadius.circular(4),
         child: InputDecorator(
-          decoration: const InputDecoration(
-            labelText: 'Room',
+          decoration: InputDecoration(
+            labelText: l10n.room,
             border: OutlineInputBorder(),
           ),
           child: Row(
@@ -70,6 +72,7 @@ class _RoomAssignmentSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final rooms = context.watch<RoomService>();
     return SafeArea(
       child: ConstrainedBox(
@@ -79,15 +82,15 @@ class _RoomAssignmentSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(24, 4, 24, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Choose room', style: TextStyle(fontSize: 20)),
+                child: Text(l10n.chooseRoom, style: TextStyle(fontSize: 20)),
               ),
             ),
             _RoomChoiceTile(
-              name: 'No room',
+              name: l10n.noRoom,
               selected: roomId == null,
               onTap: () =>
                   Navigator.pop(context, const _RoomAssignmentResult(null)),

@@ -1,7 +1,27 @@
 {
-  "appTitle": "simple_water_tracker",
+  "language": "Language",
+  "@language": {"description": "Settings language selector heading."},
+  "systemLanguage": "System default",
+  "@systemLanguage": {"description": "Follow the device's language preferences."},
+  "languageEnglish": "English",
+  "@languageEnglish": {"description": "English language name, always written in English."},
+  "languageRussian": "Русский",
+  "@languageRussian": {"description": "Russian language name, always written in Russian."},
+  "wateringNotificationTitle": "Water {plantName}",
+  "@wateringNotificationTitle": {"description": "Scheduled watering reminder title; plantName is user-owned text.", "placeholders": {"plantName": {"type": "String"}}},
+  "wateringNotificationBody": "Your plant needs water.",
+  "@wateringNotificationBody": {"description": "Scheduled watering reminder body."},
+  "testNotificationTitle": "Watering reminder test",
+  "@testNotificationTitle": {"description": "Title of the in-app notification test."},
+  "testNotificationBody": "Notifications are working.",
+  "@testNotificationBody": {"description": "Body of the in-app notification test."},
+  "notificationChannelName": "Watering reminders",
+  "@notificationChannelName": {"description": "Android notification channel name."},
+  "notificationChannelDescription": "Reminders to water your plants.",
+  "@notificationChannelDescription": {"description": "Android notification channel description."},
+  "appTitle": "Simply Water Plant",
   "@appTitle": {
-    "description": "Simple home plant water tracker app. I've made this for educational purpose."
+    "description": "Application brand name; keep Simply Water Plant in every locale."
   },
   "roomSuggestionLivingRoom": "Living room",
   "roomSuggestionBedroom": "Bedroom",
@@ -16,5 +36,673 @@
   "roomSuggestionGarden": "Garden",
   "roomSuggestionGreenhouse": "Greenhouse",
   "roomSuggestionYard": "Yard",
-  "@@locale": "en"
+  "@@locale": "en",
+  "settings": "Settings",
+  "@settings": {
+    "description": "Application UI: settings."
+  },
+  "useGrid": "Use two-column view",
+  "@useGrid": {
+    "description": "Application UI: use grid."
+  },
+  "useRows": "Use one-column view",
+  "@useRows": {
+    "description": "Application UI: use rows."
+  },
+  "wateringSchedule": "Watering schedule",
+  "@wateringSchedule": {
+    "description": "Application UI: watering schedule."
+  },
+  "rooms": "Rooms",
+  "@rooms": {
+    "description": "Application UI: rooms."
+  },
+  "addPlant": "Add plant",
+  "@addPlant": {
+    "description": "Application UI: add plant."
+  },
+  "plants": "Plants",
+  "@plants": {
+    "description": "Application UI: plants."
+  },
+  "noRoom": "No room",
+  "@noRoom": {
+    "description": "Application UI: no room."
+  },
+  "showPlants": "Show plants",
+  "@showPlants": {
+    "description": "Application UI: show plants."
+  },
+  "allPlants": "All plants",
+  "@allPlants": {
+    "description": "Application UI: all plants."
+  },
+  "manageRooms": "Manage rooms",
+  "@manageRooms": {
+    "description": "Application UI: manage rooms."
+  },
+  "noPlantsYet": "No plants yet",
+  "@noPlantsYet": {
+    "description": "Application UI: no plants yet."
+  },
+  "noPlantsHelp": "Add your first plant to start tracking its watering.",
+  "@noPlantsHelp": {
+    "description": "Application UI: no plants help."
+  },
+  "noPlantsInRoomHelp": "Add a plant or move one here from its editor.",
+  "@noPlantsInRoomHelp": {
+    "description": "Application UI: no plants in room help."
+  },
+  "chooseGallery": "Choose from gallery",
+  "@chooseGallery": {
+    "description": "Application UI: choose gallery."
+  },
+  "takePhoto": "Take photo",
+  "@takePhoto": {
+    "description": "Application UI: take photo."
+  },
+  "photoSelectionFailed": "Could not select that photo.",
+  "@photoSelectionFailed": {
+    "description": "Application UI: photo selection failed."
+  },
+  "plantNameRequired": "Enter a plant name.",
+  "@plantNameRequired": {
+    "description": "Application UI: plant name required."
+  },
+  "plantSaveFailed": "Could not save this plant.",
+  "@plantSaveFailed": {
+    "description": "Application UI: plant save failed."
+  },
+  "deletePlantTitle": "Delete plant?",
+  "@deletePlantTitle": {
+    "description": "Application UI: delete plant title."
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Application UI: cancel."
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Application UI: delete."
+  },
+  "editPlant": "Edit plant",
+  "@editPlant": {
+    "description": "Application UI: edit plant."
+  },
+  "deletePlant": "Delete plant",
+  "@deletePlant": {
+    "description": "Application UI: delete plant."
+  },
+  "plantName": "Plant name",
+  "@plantName": {
+    "description": "Application UI: plant name."
+  },
+  "watering": "Watering",
+  "@watering": {
+    "description": "Application UI: watering."
+  },
+  "decreaseWateringInterval": "Decrease watering interval",
+  "@decreaseWateringInterval": {
+    "description": "Application UI: decrease watering interval."
+  },
+  "increaseWateringInterval": "Increase watering interval",
+  "@increaseWateringInterval": {
+    "description": "Application UI: increase watering interval."
+  },
+  "saveChanges": "Save changes",
+  "@saveChanges": {
+    "description": "Application UI: save changes."
+  },
+  "changePhoto": "Change photo",
+  "@changePhoto": {
+    "description": "Application UI: change photo."
+  },
+  "photoUnavailable": "Photo unavailable",
+  "@photoUnavailable": {
+    "description": "Application UI: photo unavailable."
+  },
+  "wateringWeek": "Watering week",
+  "@wateringWeek": {
+    "description": "Application UI: watering week."
+  },
+  "testNotificationTooltip": "Test notification in one minute",
+  "@testNotificationTooltip": {
+    "description": "Application UI: test notification tooltip."
+  },
+  "noReminders": "No plants to remind you about.",
+  "@noReminders": {
+    "description": "Application UI: no reminders."
+  },
+  "testReminderScheduled": "Test reminder scheduled for one minute from now.",
+  "@testReminderScheduled": {
+    "description": "Application UI: test reminder scheduled."
+  },
+  "notificationsOff": "Notifications are off or unavailable. Check notification settings.",
+  "@notificationsOff": {
+    "description": "Application UI: notifications off."
+  },
+  "testReminderFailed": "Could not schedule a test reminder. Try again.",
+  "@testReminderFailed": {
+    "description": "Application UI: test reminder failed."
+  },
+  "today": "Today",
+  "@today": {
+    "description": "Application UI: today."
+  },
+  "itemDetails": "Item Details",
+  "@itemDetails": {
+    "description": "Application UI: item details."
+  },
+  "moreInformation": "More Information Here",
+  "@moreInformation": {
+    "description": "Application UI: more information."
+  },
+  "pictureCaptureFailed": "Could not take the picture. Try again.",
+  "@pictureCaptureFailed": {
+    "description": "Application UI: picture capture failed."
+  },
+  "plantAddFailed": "Could not add this plant.",
+  "@plantAddFailed": {
+    "description": "Application UI: plant add failed."
+  },
+  "photoYourPlant": "Photo your plant",
+  "@photoYourPlant": {
+    "description": "Application UI: photo your plant."
+  },
+  "plantNameSuggestionHelp": "Leave blank to use this suggestion.",
+  "@plantNameSuggestionHelp": {
+    "description": "Application UI: plant name suggestion help."
+  },
+  "takingPicture": "Taking picture...",
+  "@takingPicture": {
+    "description": "Application UI: taking picture."
+  },
+  "cameraPermissionDenied": "Camera permission denied",
+  "@cameraPermissionDenied": {
+    "description": "Application UI: camera permission denied."
+  },
+  "cameraPermissionRequired": "Camera permission required",
+  "@cameraPermissionRequired": {
+    "description": "Application UI: camera permission required."
+  },
+  "cameraUnavailable": "Camera access unavailable",
+  "@cameraUnavailable": {
+    "description": "Application UI: camera unavailable."
+  },
+  "noCamera": "No camera available",
+  "@noCamera": {
+    "description": "Application UI: no camera."
+  },
+  "addWithoutPhoto": "Add without photo",
+  "@addWithoutPhoto": {
+    "description": "Application UI: add without photo."
+  },
+  "useCamera": "Use camera",
+  "@useCamera": {
+    "description": "Application UI: use camera."
+  },
+  "retryCamera": "Retry camera",
+  "@retryCamera": {
+    "description": "Application UI: retry camera."
+  },
+  "openAppSettings": "Open app settings",
+  "@openAppSettings": {
+    "description": "Application UI: open app settings."
+  },
+  "displayPicture": "Display the Picture",
+  "@displayPicture": {
+    "description": "Application UI: display picture."
+  },
+  "room": "Room",
+  "@room": {
+    "description": "Application UI: room."
+  },
+  "chooseRoom": "Choose room",
+  "@chooseRoom": {
+    "description": "Application UI: choose room."
+  },
+  "createRoom": "Create room",
+  "@createRoom": {
+    "description": "Application UI: create room."
+  },
+  "roomReorderFailed": "Could not reorder rooms.",
+  "@roomReorderFailed": {
+    "description": "Application UI: room reorder failed."
+  },
+  "suggestedPlaces": "Suggested places",
+  "@suggestedPlaces": {
+    "description": "Application UI: suggested places."
+  },
+  "roomsHelp": "Rooms are optional. Add a suggested place or create your own.",
+  "@roomsHelp": {
+    "description": "Application UI: rooms help."
+  },
+  "roomSaveFailed": "Could not save this room.",
+  "@roomSaveFailed": {
+    "description": "Application UI: room save failed."
+  },
+  "renameRoom": "Rename room",
+  "@renameRoom": {
+    "description": "Application UI: rename room."
+  },
+  "roomName": "Room name",
+  "@roomName": {
+    "description": "Application UI: room name."
+  },
+  "create": "Create",
+  "@create": {
+    "description": "Application UI: create."
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Application UI: save."
+  },
+  "roomNameRequired": "Enter a room name.",
+  "@roomNameRequired": {
+    "description": "Application UI: room name required."
+  },
+  "roomNameDuplicate": "A room with that name already exists.",
+  "@roomNameDuplicate": {
+    "description": "Application UI: room name duplicate."
+  },
+  "roomWillBeRemoved": "This room will be removed.",
+  "@roomWillBeRemoved": {
+    "description": "Application UI: room will be removed."
+  },
+  "roomDeleteFailed": "Could not delete this room.",
+  "@roomDeleteFailed": {
+    "description": "Application UI: room delete failed."
+  },
+  "systemTheme": "System Theme",
+  "@systemTheme": {
+    "description": "Application UI: system theme."
+  },
+  "lightTheme": "Light Theme",
+  "@lightTheme": {
+    "description": "Application UI: light theme."
+  },
+  "darkTheme": "Dark Theme",
+  "@darkTheme": {
+    "description": "Application UI: dark theme."
+  },
+  "wateringStatus": "Watering status",
+  "@wateringStatus": {
+    "description": "Application UI: watering status."
+  },
+  "wateringStatusHelp": "Choose whether plant cards include an estimated watering time.",
+  "@wateringStatusHelp": {
+    "description": "Application UI: watering status help."
+  },
+  "simpleStatus": "Simple",
+  "@simpleStatus": {
+    "description": "Application UI: simple status."
+  },
+  "informativeStatus": "Informative",
+  "@informativeStatus": {
+    "description": "Application UI: informative status."
+  },
+  "notificationsEnabledDescription": "Allowed by Android for watering notifications.",
+  "@notificationsEnabledDescription": {
+    "description": "Application UI: notifications enabled description."
+  },
+  "notificationsRequestableDescription": "Notifications are off. Allow reminders when your plants need water.",
+  "@notificationsRequestableDescription": {
+    "description": "Application UI: notifications requestable description."
+  },
+  "notificationsSettingsRequiredDescription": "Notifications are off. Enable them in Android settings.",
+  "@notificationsSettingsRequiredDescription": {
+    "description": "Application UI: notifications settings required description."
+  },
+  "notificationsChannelBlockedDescription": "The watering notification category is off. Enable it in Android settings.",
+  "@notificationsChannelBlockedDescription": {
+    "description": "Application UI: notifications channel blocked description."
+  },
+  "notificationsUnsupportedDescription": "Notifications are currently available on Android only.",
+  "@notificationsUnsupportedDescription": {
+    "description": "Application UI: notifications unsupported description."
+  },
+  "checkingNotificationSettings": "Checking notification settings…",
+  "@checkingNotificationSettings": {
+    "description": "Application UI: checking notification settings."
+  },
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Application UI: notifications."
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Application UI: retry."
+  },
+  "allowNotifications": "Allow notifications",
+  "@allowNotifications": {
+    "description": "Application UI: allow notifications."
+  },
+  "openNotificationSettings": "Open Android notification settings",
+  "@openNotificationSettings": {
+    "description": "Application UI: open notification settings."
+  },
+  "reminderUpdateFailed": "Could not update reminders. Try again.",
+  "@reminderUpdateFailed": {
+    "description": "Application UI: reminder update failed."
+  },
+  "notificationSettingsReadFailed": "Could not read notification settings. Try again.",
+  "@notificationSettingsReadFailed": {
+    "description": "Application UI: notification settings read failed."
+  },
+  "androidSettingsOpenFailed": "Could not open Android settings.",
+  "@androidSettingsOpenFailed": {
+    "description": "Application UI: android settings open failed."
+  },
+  "doingWell": "Doing well",
+  "@doingWell": {
+    "description": "Application UI: doing well."
+  },
+  "waterSoon": "Water soon",
+  "@waterSoon": {
+    "description": "Application UI: water soon."
+  },
+  "needsWater": "Needs water",
+  "@needsWater": {
+    "description": "Application UI: needs water."
+  },
+  "waterNow": "Water now",
+  "@waterNow": {
+    "description": "Application UI: water now."
+  },
+  "cameraUnavailableHelp": "The camera may be unavailable or permission may have been denied.\nYou can still add this plant without a photo.",
+  "@cameraUnavailableHelp": {
+    "description": "Application UI: camera unavailable help."
+  },
+  "roomFilterSemantics": "Room filter, {roomName}, change room",
+  "@roomFilterSemantics": {
+    "description": "Accessible room filter action. roomName is a user-owned name or the localized collection label.",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "roomAssignmentSemantics": "Room, {roomName}, change room",
+  "@roomAssignmentSemantics": {
+    "description": "Accessible room assignment action.",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "noPlantsInRoom": "No plants in {roomName}",
+  "@noPlantsInRoom": {
+    "description": "Empty collection for a user-named room. Do not inflect the supplied name.",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "waterPlant": "Water {plantName}",
+  "@waterPlant": {
+    "description": "Accessible watering action; supplied plant name is user content.",
+    "placeholders": {
+      "plantName": {
+        "type": "String"
+      }
+    }
+  },
+  "undoWaterPlant": "Undo watering for {plantName}",
+  "@undoWaterPlant": {
+    "description": "Accessible undo action; supplied name is user content.",
+    "placeholders": {
+      "plantName": {
+        "type": "String"
+      }
+    }
+  },
+  "editNamedPlant": "Edit {plantName}",
+  "@editNamedPlant": {
+    "description": "Accessible edit action.",
+    "placeholders": {
+      "plantName": {
+        "type": "String"
+      }
+    }
+  },
+  "noPlantPhoto": "No photo for {plantName}",
+  "@noPlantPhoto": {
+    "description": "Accessible missing-photo description.",
+    "placeholders": {
+      "plantName": {
+        "type": "String"
+      }
+    }
+  },
+  "plantDeleteConfirmation": "{plantName} and its watering history will be removed.",
+  "@plantDeleteConfirmation": {
+    "description": "Plant deletion confirmation. Preserve the supplied name.",
+    "placeholders": {
+      "plantName": {
+        "type": "String"
+      }
+    }
+  },
+  "wateringInterval": "{days, plural, one{Every {days} day} other{Every {days} days}}",
+  "@wateringInterval": {
+    "description": "Editor watering interval in days.",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "waterEveryDays": "{days, plural, one{Water every {days} day} other{Water every {days} days}}",
+  "@waterEveryDays": {
+    "description": "Camera form watering interval in days.",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "dayCount": "{days, plural, one{{days} day} other{{days} days}}",
+  "@dayCount": {
+    "description": "Slider value and accessible watering interval.",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "wateringStatusSemantics": "Watering status: {status}",
+  "@wateringStatusSemantics": {
+    "description": "Accessible prefix for a complete localized watering status.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "namedWateringStatus": "{plantName}, {status}",
+  "@namedWateringStatus": {
+    "description": "Accessible schedule card; status is a full localized phrase.",
+    "placeholders": {
+      "plantName": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "roomAddFailed": "Could not add {roomName}.",
+  "@roomAddFailed": {
+    "description": "Saving a suggested room failed.",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "plantCount": "{count, plural, one{{count} plant} other{{count} plants}}",
+  "@plantCount": {
+    "description": "Number of plants assigned to a room.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "deleteNamedRoom": "Delete {roomName}",
+  "@deleteNamedRoom": {
+    "description": "Accessible delete-room action.",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "roomDeleteTitle": "Delete {roomName}?",
+  "@roomDeleteTitle": {
+    "description": "Room deletion confirmation title.",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "roomPlantsKept": "{count, plural, one{{count} plant will be kept without a room.} other{{count} plants will be kept without a room.}}",
+  "@roomPlantsKept": {
+    "description": "Room deletion preserves these plants.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "waterInHours": "{hours, plural, one{Water in ~{hours} h} other{Water in ~{hours} h}}",
+  "@waterInHours": {
+    "description": "Estimated time until watering, in hours; approximate, not an exact alarm time.",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "waterInDays": "{days, plural, one{Water in ~{days} day} other{Water in ~{days} days}}",
+  "@waterInDays": {
+    "description": "Estimated time until watering, in days.",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "waterInHoursCompact": "~{hours}h",
+  "@waterInHoursCompact": {
+    "description": "Compact visual estimate on a small plant card. Translate the unit and approximation marker.",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "waterInDaysCompact": "~{days}d",
+  "@waterInDaysCompact": {
+    "description": "Compact visual estimate on a small plant card.",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "waterInHoursSpoken": "{hours, plural, one{Water in approximately {hours} hour} other{Water in approximately {hours} hours}}",
+  "@waterInHoursSpoken": {
+    "description": "Spoken watering estimate; use full units, not abbreviations.",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "waterInDaysSpoken": "{days, plural, one{Water in approximately {days} day} other{Water in approximately {days} days}}",
+  "@waterInDaysSpoken": {
+    "description": "Spoken watering estimate.",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "wateringStatusWithEstimate": "{status}, {estimate}",
+  "@wateringStatusWithEstimate": {
+    "description": "Combines a translated urgency label with a full spoken estimate.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "visibleCount": "{count}",
+  "@visibleCount": {
+    "description": "Locale-formatted count in a compact badge.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "plantNameSuggestion1": "Blooming Azalea",
+  "@plantNameSuggestion1": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion2": "Lush Fern",
+  "@plantNameSuggestion2": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion3": "Evergreen Maple",
+  "@plantNameSuggestion3": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion4": "Thriving Orchid",
+  "@plantNameSuggestion4": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion5": "Vibrant Sunflower",
+  "@plantNameSuggestion5": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion6": "Radiant Lily",
+  "@plantNameSuggestion6": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion7": "Flourishing Rose",
+  "@plantNameSuggestion7": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion8": "Verdant Daisy",
+  "@plantNameSuggestion8": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion9": "Bountiful Poppy",
+  "@plantNameSuggestion9": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  },
+  "plantNameSuggestion10": "Abundant Jasmine",
+  "@plantNameSuggestion10": {
+    "description": "Complete random plant-name suggestion. Translate the entire phrase with correct grammatical agreement. Saved names are never retranslated."
+  }
 }

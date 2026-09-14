@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_water_tracker/src/camera/take_picture_screen.dart';
 import 'package:simple_water_tracker/src/localization/app_localizations.dart';
@@ -13,6 +12,7 @@ import 'services/plant_service.dart';
 import 'services/plant_photo_picker.dart';
 import 'services/reminder_coordinator.dart';
 import 'services/room_service.dart';
+import 'localization/app_localizations_loader.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
@@ -39,7 +39,11 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
     super.initState();
     _plantService = PlantService();
     _roomService = RoomService();
-    _reminderCoordinator = ReminderCoordinator(plantService: _plantService);
+    _reminderCoordinator = ReminderCoordinator(
+      plantService: _plantService,
+      loadLocalizations: () =>
+          loadAppLocalizations(locale: widget.settingsController.locale),
+    );
     _startReminderCoordinator();
     _recoverPickedPhoto();
   }
@@ -122,15 +126,9 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
             // Provide the generated AppLocalizations to the MaterialApp. This
             // allows descendant Widgets to display the correct translations
             // depending on the user's locale.
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('en', ''), // English, no country code
-            ],
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: widget.settingsController.locale,
 
             // Use AppLocalizations to configure the correct application title
             // depending on the user's locale.

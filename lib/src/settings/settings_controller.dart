@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../basic_feature/watering_status_presentation.dart';
+import '../localization/app_localizations.dart';
 import 'settings_service.dart';
 
 /// A class that many Widgets can interact with to read user settings, update
@@ -17,11 +18,13 @@ class SettingsController with ChangeNotifier {
   // Make ThemeMode a private variable so it is not updated directly without
   // also persisting the changes with the SettingsService.
   late ThemeMode _themeMode;
+  Locale? _locale;
   late PlantListLayout _plantListLayout;
   late WateringStatusPresentation _wateringStatusPresentation;
 
   // Allow Widgets to read the user's preferred ThemeMode.
   ThemeMode get themeMode => _themeMode;
+  Locale? get locale => _locale;
   PlantListLayout get plantListLayout => _plantListLayout;
   WateringStatusPresentation get wateringStatusPresentation =>
       _wateringStatusPresentation;
@@ -30,6 +33,11 @@ class SettingsController with ChangeNotifier {
   /// local database or the internet. The controller only knows it can load the
   /// settings from the service.
   Future<void> loadSettings() async {
+    final tag = await _settingsService.localeTag();
+    _locale = null;
+    for (final supported in AppLocalizations.supportedLocales) {
+      if (supported.toLanguageTag() == tag) _locale = supported;
+    }
     _themeMode = await _settingsService.themeMode();
     _plantListLayout = await _settingsService.plantListLayout();
     _wateringStatusPresentation = await _settingsService
@@ -60,6 +68,13 @@ class SettingsController with ChangeNotifier {
     _plantListLayout = newLayout;
     notifyListeners();
     await _settingsService.updatePlantListLayout(newLayout);
+  }
+
+  Future<void> updateLocale(Locale? locale) async {
+    if (locale == _locale) return;
+    _locale = locale;
+    notifyListeners();
+    await _settingsService.updateLocaleTag(locale?.toLanguageTag());
   }
 
   Future<void> updateWateringStatusPresentation(

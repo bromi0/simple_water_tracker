@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/watering_reminder_calculator.dart';
+import '../localization/app_localizations.dart';
 import 'plant_data.dart';
 
 /// The amount of watering urgency conveyed by every plant-facing surface.
@@ -12,9 +13,8 @@ enum WateringStatusPresentation { simple, informative }
 /// A shared, UI-facing description of a plant's current watering state.
 ///
 /// Keeping state, wording, and color selection together prevents a decorative
-/// plant color from accidentally communicating watering urgency. The English
-/// copy is deliberately centralized here so a future localization pass has one
-/// presentation endpoint to replace.
+/// plant color from accidentally communicating watering urgency. Messages use
+/// the generated localization API at this shared presentation boundary.
 class PlantWateringStatus {
   const PlantWateringStatus._({
     required this.state,
@@ -49,46 +49,59 @@ class PlantWateringStatus {
     return PlantWateringStatus._(state: state, estimatedWateringTime: dueAt);
   }
 
-  String get simpleLabel => switch (state) {
-    PlantWateringState.doingWell => 'Doing well',
-    PlantWateringState.waterSoon => 'Water soon',
-    PlantWateringState.needsWater => 'Needs water',
+  String simpleLabel(AppLocalizations l10n) => switch (state) {
+    PlantWateringState.doingWell => l10n.doingWell,
+    PlantWateringState.waterSoon => l10n.waterSoon,
+    PlantWateringState.needsWater => l10n.needsWater,
   };
 
-  String informativeLabel({DateTime? now}) {
+  // Preserve the 48-hour cutoff and round positive estimates up, including
+  // sub-minute durations. All visual and spoken variants share this rounding.
+  ({bool due, bool useHours, int count}) _estimate(DateTime? now) {
     final remaining = estimatedWateringTime.difference(
       (now ?? DateTime.now()).toUtc(),
     );
     if (state == PlantWateringState.needsWater || remaining <= Duration.zero) {
-      return 'Water now';
+      return (due: true, useHours: true, count: 0);
     }
-    final hours = remaining.inMinutes.ceil() / 60;
-    if (hours < 48) return 'Water in ~${hours.ceil()} h';
-    final days = (hours / 24).ceil();
-    return 'Water in ~$days ${days == 1 ? 'day' : 'days'}';
+    final hours = remaining.inMicroseconds / Duration.microsecondsPerHour;
+    return (
+      due: false,
+      useHours: hours < 48,
+      count: hours < 48 ? hours.ceil() : (hours / 24).ceil(),
+    );
   }
 
-  /// Compact copy keeps the informative grid card readable beside its action.
-  String compactInformativeLabel({DateTime? now}) {
-    final remaining = estimatedWateringTime.difference(
-      (now ?? DateTime.now()).toUtc(),
-    );
-    if (state == PlantWateringState.needsWater || remaining <= Duration.zero) {
-      return 'Water now';
-    }
-    final hours = remaining.inMinutes.ceil() / 60;
-    if (hours < 48) return '~${hours.ceil()}h';
-    return '~${(hours / 24).ceil()}d';
+  String informativeLabel(AppLocalizations l10n, {DateTime? now}) {
+    final estimate = _estimate(now);
+    if (estimate.due) return l10n.waterNow;
+    return estimate.useHours
+        ? l10n.waterInHours(estimate.count)
+        : l10n.waterInDays(estimate.count);
+  }
+
+  String compactInformativeLabel(AppLocalizations l10n, {DateTime? now}) {
+    final estimate = _estimate(now);
+    if (estimate.due) return l10n.waterNow;
+    return estimate.useHours
+        ? l10n.waterInHoursCompact(estimate.count)
+        : l10n.waterInDaysCompact(estimate.count);
   }
 
   String semanticsLabel(
+    AppLocalizations l10n,
     WateringStatusPresentation presentation, {
     DateTime? now,
   }) {
-    final detail = presentation == WateringStatusPresentation.informative
-        ? ', ${informativeLabel(now: now)}'
-        : '';
-    return '$simpleLabel$detail';
+    final label = simpleLabel(l10n);
+    if (presentation == WateringStatusPresentation.simple) return label;
+    final estimate = _estimate(now);
+    final detail = estimate.due
+        ? l10n.waterNow
+        : estimate.useHours
+        ? l10n.waterInHoursSpoken(estimate.count)
+        : l10n.waterInDaysSpoken(estimate.count);
+    return l10n.wateringStatusWithEstimate(label, detail);
   }
 
   Color colorFor(ThemeData theme) {

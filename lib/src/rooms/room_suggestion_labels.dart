@@ -14,6 +14,7 @@ Map<RoomSuggestion, String> roomSuggestionLabels(
 ) {
   switch (locale.languageCode) {
     case 'en':
+    case 'ru':
       return {
         RoomSuggestion.livingRoom: localizations.roomSuggestionLivingRoom,
         RoomSuggestion.bedroom: localizations.roomSuggestionBedroom,
