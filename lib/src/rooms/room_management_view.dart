@@ -15,13 +15,14 @@ class RoomManagementView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage rooms'),
+        title: Text(l10n.manageRooms),
         actions: [
           IconButton(
             onPressed: () => _showRoomNameDialog(context),
-            tooltip: 'Create room',
+            tooltip: l10n.createRoom,
             icon: const Icon(Icons.add),
           ),
         ],
@@ -38,29 +39,24 @@ class RoomManagementView extends StatelessWidget {
           final suggestions = labels.values
               .where((name) => !usedNames.contains(name.toLowerCase()))
               .toList();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (suggestions.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: _SuggestedRooms(suggestions: suggestions),
-                ),
-              Expanded(
-                child: rooms.rooms.isEmpty
-                    ? const _EmptyRoomList()
-                    : ReorderableListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                        itemCount: rooms.rooms.length,
-                        onReorderItem: (oldIndex, newIndex) =>
-                            _reorder(context, oldIndex, newIndex),
-                        itemBuilder: (context, index) {
-                          final room = rooms.rooms[index];
-                          return _RoomTile(key: ValueKey(room.id), room: room);
-                        },
-                      ),
-              ),
-            ],
+          // Suggestions scroll with rooms so translated chips cannot crowd
+          // the room list off a small screen at large text sizes.
+          return ReorderableListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            header: suggestions.isEmpty
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: _SuggestedRooms(suggestions: suggestions),
+                  ),
+            footer: rooms.rooms.isEmpty ? const _EmptyRoomList() : null,
+            itemCount: rooms.rooms.length,
+            onReorderItem: (oldIndex, newIndex) =>
+                _reorder(context, oldIndex, newIndex),
+            itemBuilder: (context, index) {
+              final room = rooms.rooms[index];
+              return _RoomTile(key: ValueKey(room.id), room: room);
+            },
           );
         },
       ),
@@ -75,7 +71,9 @@ class RoomManagementView extends StatelessWidget {
     try {
       await context.read<RoomService>().reorder(oldIndex, newIndex);
     } catch (_) {
-      if (context.mounted) _showError(context, 'Could not reorder rooms.');
+      if (context.mounted) {
+        _showError(context, AppLocalizations.of(context)!.roomReorderFailed);
+      }
     }
   }
 }
@@ -87,11 +85,12 @@ class _SuggestedRooms extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Suggested places',
+          l10n.suggestedPlaces,
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
@@ -107,7 +106,7 @@ class _SuggestedRooms extends StatelessWidget {
                     await context.read<RoomService>().add(name);
                   } catch (_) {
                     if (context.mounted) {
-                      _showError(context, 'Could not add $name.');
+                      _showError(context, l10n.roomAddFailed(name));
                     }
                   }
                 },
@@ -123,11 +122,11 @@ class _EmptyRoomList extends StatelessWidget {
   const _EmptyRoomList();
 
   @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) => Center(
     child: Padding(
       padding: EdgeInsets.all(32),
       child: Text(
-        'Rooms are optional. Add a suggested place or create your own.',
+        AppLocalizations.of(context)!.roomsHelp,
         textAlign: TextAlign.center,
       ),
     ),
@@ -141,6 +140,7 @@ class _RoomTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final plantCount = context.select<PlantService, int>(
       (plants) =>
           plants.plants.where((plant) => plant.roomId == room.id).length,
@@ -149,11 +149,11 @@ class _RoomTile extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.drag_handle),
         title: Text(room.name),
-        subtitle: Text('$plantCount ${plantCount == 1 ? 'plant' : 'plants'}'),
+        subtitle: Text(l10n.plantCount(plantCount)),
         onTap: () => _showRoomNameDialog(context, room: room),
         trailing: IconButton(
           onPressed: () => _confirmDelete(context, room, plantCount),
-          tooltip: 'Delete ${room.name}',
+          tooltip: l10n.deleteNamedRoom(room.name),
           icon: const Icon(Icons.delete_outline),
         ),
       ),
@@ -179,10 +179,14 @@ Future<void> _showRoomNameDialog(BuildContext context, {RoomData? room}) async {
     } else {
       await roomService.rename(room, result);
     }
-  } on ArgumentError catch (error) {
-    if (context.mounted) _showError(context, error.message.toString());
+  } on RoomNameException catch (error) {
+    if (context.mounted) {
+      _showError(context, _roomNameError(context, error.reason));
+    }
   } catch (_) {
-    if (context.mounted) _showError(context, 'Could not save this room.');
+    if (context.mounted) {
+      _showError(context, AppLocalizations.of(context)!.roomSaveFailed);
+    }
   }
 }
 
@@ -200,7 +204,7 @@ class _RoomNameDialogState extends State<_RoomNameDialog> {
   late final TextEditingController _controller = TextEditingController(
     text: widget.room?.name ?? '',
   );
-  String? _errorText;
+  RoomNameFailure? _nameFailure;
 
   @override
   void dispose() {
@@ -213,14 +217,16 @@ class _RoomNameDialogState extends State<_RoomNameDialog> {
     alignment: Alignment.topCenter,
     insetPadding: const EdgeInsets.fromLTRB(24, 72, 24, 24),
     insetAnimationDuration: Duration.zero,
-    child: Padding(
+    child: SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            widget.room == null ? 'Create room' : 'Rename room',
+            widget.room == null
+                ? AppLocalizations.of(context)!.createRoom
+                : AppLocalizations.of(context)!.renameRoom,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 20),
@@ -229,27 +235,36 @@ class _RoomNameDialogState extends State<_RoomNameDialog> {
             autofocus: true,
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
-              labelText: 'Room name',
-              errorText: _errorText,
+              labelText: AppLocalizations.of(context)!.roomName,
+              errorText: _nameFailure == null
+                  ? null
+                  : _roomNameError(context, _nameFailure!),
+              errorMaxLines: 3,
               border: const OutlineInputBorder(),
             ),
             onChanged: (_) {
-              if (_errorText != null) setState(() => _errorText = null);
+              if (_nameFailure != null) setState(() => _nameFailure = null);
             },
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          OverflowBar(
+            alignment: MainAxisAlignment.end,
+            overflowAlignment: OverflowBarAlignment.end,
+            spacing: 8,
+            overflowSpacing: 8,
             children: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
-              const SizedBox(width: 8),
               FilledButton(
                 onPressed: _submit,
-                child: Text(widget.room == null ? 'Create' : 'Save'),
+                child: Text(
+                  widget.room == null
+                      ? AppLocalizations.of(context)!.create
+                      : AppLocalizations.of(context)!.save,
+                ),
               ),
             ],
           ),
@@ -265,9 +280,9 @@ class _RoomNameDialogState extends State<_RoomNameDialog> {
     );
     if (name.isEmpty || duplicate) {
       setState(() {
-        _errorText = name.isEmpty
-            ? 'Enter a room name.'
-            : 'A room with that name already exists.';
+        _nameFailure = name.isEmpty
+            ? RoomNameFailure.empty
+            : RoomNameFailure.duplicate;
       });
       return;
     }
@@ -283,16 +298,16 @@ Future<void> _confirmDelete(
   final delete = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text('Delete ${room.name}?'),
+      title: Text(AppLocalizations.of(context)!.roomDeleteTitle(room.name)),
       content: Text(
         plantCount == 0
-            ? 'This room will be removed.'
-            : '$plantCount ${plantCount == 1 ? 'plant will' : 'plants will'} be kept without a room.',
+            ? AppLocalizations.of(context)!.roomWillBeRemoved
+            : AppLocalizations.of(context)!.roomPlantsKept(plantCount),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context)!.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
@@ -300,7 +315,7 @@ Future<void> _confirmDelete(
             backgroundColor: Theme.of(context).colorScheme.error,
             foregroundColor: Theme.of(context).colorScheme.onError,
           ),
-          child: const Text('Delete'),
+          child: Text(AppLocalizations.of(context)!.delete),
         ),
       ],
     ),
@@ -312,10 +327,20 @@ Future<void> _confirmDelete(
     await roomService.remove(room);
     await plantService.clearRoomReferences(room.id);
   } catch (_) {
-    if (context.mounted) _showError(context, 'Could not delete this room.');
+    if (context.mounted) {
+      _showError(context, AppLocalizations.of(context)!.roomDeleteFailed);
+    }
   }
 }
 
 void _showError(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
+
+String _roomNameError(BuildContext context, RoomNameFailure reason) {
+  final l10n = AppLocalizations.of(context)!;
+  return switch (reason) {
+    RoomNameFailure.empty => l10n.roomNameRequired,
+    RoomNameFailure.duplicate => l10n.roomNameDuplicate,
+  };
 }

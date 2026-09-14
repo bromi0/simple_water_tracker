@@ -13,6 +13,7 @@ import '../settings/settings_controller.dart';
 import '../services/room_service.dart';
 import 'plant_data.dart';
 import 'watering_status_presentation.dart';
+import '../localization/app_localizations.dart';
 
 /// A full-screen editor so a plant's photo and care details have one home.
 class PlantEditorScreen extends StatefulWidget {
@@ -79,12 +80,12 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: Text(AppLocalizations.of(context)!.chooseGallery),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take photo'),
+              title: Text(AppLocalizations.of(context)!.takePhoto),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             const SizedBox(height: 8),
@@ -106,7 +107,9 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not select that photo.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.photoSelectionFailed),
+        ),
       );
     }
   }
@@ -114,9 +117,11 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter a plant name.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.plantNameRequired),
+        ),
+      );
       return;
     }
     setState(() => _isSaving = true);
@@ -134,7 +139,9 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
       debugPrint('Could not save plant: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save this plant.')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.plantSaveFailed),
+          ),
         );
       }
     } finally {
@@ -146,14 +153,16 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete plant?'),
+        title: Text(AppLocalizations.of(context)!.deletePlantTitle),
         content: Text(
-          '${widget.plant.name} and its watering history will be removed.',
+          AppLocalizations.of(
+            context,
+          )!.plantDeleteConfirmation(widget.plant.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
@@ -161,7 +170,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -201,6 +210,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final store = context.watch<PlantService>();
     final presentation = context
@@ -216,11 +226,11 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit plant'),
+        title: Text(l10n.editPlant),
         actions: [
           IconButton(
             onPressed: _isSaving ? null : _deletePlant,
-            tooltip: 'Delete plant',
+            tooltip: l10n.deletePlant,
             color: theme.colorScheme.error,
             icon: const Icon(Icons.delete_outline),
           ),
@@ -253,8 +263,8 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                 controller: _nameController,
                 enabled: !_isSaving,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Plant name',
+                decoration: InputDecoration(
+                  labelText: l10n.plantName,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -265,7 +275,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                 onChanged: (roomId) => setState(() => _roomId = roomId),
               ),
               const SizedBox(height: 28),
-              Text('Watering', style: theme.textTheme.titleMedium),
+              Text(l10n.watering, style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -274,12 +284,12 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                     onPressed: _isSaving || _wateringInterval == 1
                         ? null
                         : () => setState(() => _wateringInterval--),
-                    tooltip: 'Decrease watering interval',
+                    tooltip: l10n.decreaseWateringInterval,
                     icon: const Icon(Icons.remove),
                   ),
                   Expanded(
                     child: Text(
-                      'Every $_wateringInterval ${_wateringInterval == 1 ? 'day' : 'days'}',
+                      l10n.wateringInterval(_wateringInterval),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.titleLarge,
                     ),
@@ -288,7 +298,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                     onPressed: _isSaving
                         ? null
                         : () => setState(() => _wateringInterval++),
-                    tooltip: 'Increase watering interval',
+                    tooltip: l10n.increaseWateringInterval,
                     icon: const Icon(Icons.add),
                   ),
                 ],
@@ -301,7 +311,7 @@ class _PlantEditorScreenState extends State<PlantEditorScreen> {
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save changes'),
+                    : Text(l10n.saveChanges),
               ),
             ],
           ),
@@ -331,10 +341,13 @@ class _CurrentWateringStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final statusColor = status.colorFor(theme);
     return Semantics(
-      label: 'Watering status: ${status.semanticsLabel(presentation)}',
+      label: l10n.wateringStatusSemantics(
+        status.semanticsLabel(l10n, presentation),
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: statusColor.withAlpha(24),
@@ -351,7 +364,7 @@ class _CurrentWateringStatus extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        status.simpleLabel,
+                        status.simpleLabel(l10n),
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: statusColor,
                           fontWeight: FontWeight.w700,
@@ -360,7 +373,7 @@ class _CurrentWateringStatus extends StatelessWidget {
                       if (presentation ==
                           WateringStatusPresentation.informative)
                         Text(
-                          status.informativeLabel(),
+                          status.informativeLabel(l10n),
                           style: theme.textTheme.bodyMedium,
                         ),
                     ],
@@ -369,12 +382,14 @@ class _CurrentWateringStatus extends StatelessWidget {
               ),
               Semantics(
                 button: true,
-                label: '${isUndo ? 'Undo watering for' : 'Water'} $plantName',
+                label: isUndo
+                    ? l10n.undoWaterPlant(plantName)
+                    : l10n.waterPlant(plantName),
                 child: IconButton.filled(
                   onPressed: onWaterOrUndo,
                   tooltip: isUndo
-                      ? 'Undo watering for $plantName'
-                      : 'Water $plantName',
+                      ? l10n.undoWaterPlant(plantName)
+                      : l10n.waterPlant(plantName),
                   style: IconButton.styleFrom(
                     backgroundColor: statusColor,
                     foregroundColor:
@@ -407,6 +422,7 @@ class _PhotoPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final image = photoBytes != null
         ? Image.memory(photoBytes!, fit: BoxFit.cover)
         : plant.picturePath != null
@@ -432,7 +448,7 @@ class _PhotoPreview extends StatelessWidget {
               bottom: 12,
               child: IconButton.filled(
                 onPressed: onChangePhoto,
-                tooltip: 'Change photo',
+                tooltip: l10n.changePhoto,
                 icon: const Icon(Icons.photo_camera_back_outlined),
               ),
             ),

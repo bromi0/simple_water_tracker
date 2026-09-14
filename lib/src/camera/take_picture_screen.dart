@@ -11,6 +11,7 @@ import 'package:simple_water_tracker/src/helpers/plant_name_generator.dart';
 import '../services/plant_service.dart';
 import '../services/room_service.dart';
 import '../rooms/room_assignment_field.dart';
+import '../localization/app_localizations.dart';
 
 // A screen that allows users to take a picture using a given camera.
 class TakePictureScreen extends StatefulWidget {
@@ -31,7 +32,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
     with WidgetsBindingObserver {
   CameraController? _cameraController;
   final TextEditingController _plantNameController = TextEditingController();
-  late final String _suggestedPlantName;
+  String? _suggestedPlantName;
   int _currentWateringIntervalSliderValue = 3;
   _CameraStatus _cameraStatus = _CameraStatus.initializing;
   Future<void>? _cameraDisposal;
@@ -45,10 +46,19 @@ class _TakePictureScreenState extends State<TakePictureScreen>
   @override
   void initState() {
     super.initState();
-    _suggestedPlantName = generateRandomPlantName();
     _roomId = widget.initialRoomId;
     WidgetsBinding.instance.addObserver(this);
     unawaited(_initializeCamera());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A suggestion becomes draft content once shown; do not rename a draft
+    // when the system language changes while the camera screen is open.
+    _suggestedPlantName ??= generateRandomPlantName(
+      AppLocalizations.of(context)!,
+    );
   }
 
   Future<void> _initializeCamera({bool requestPermission = false}) async {
@@ -212,7 +222,9 @@ class _TakePictureScreenState extends State<TakePictureScreen>
             : _CameraStatus.ready;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not take the picture. Try again.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pictureCaptureFailed),
+        ),
       );
     }
   }
@@ -220,7 +232,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
   PlantData _createPlant() {
     return PlantData(
       name: _plantNameController.text.trim().isEmpty
-          ? _suggestedPlantName
+          ? _suggestedPlantName!
           : _plantNameController.text,
       waterLevel: 0,
       wateringInterval: _currentWateringIntervalSliderValue,
@@ -236,7 +248,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
       debugPrint('Could not add plant: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not add this plant.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.plantAddFailed)),
         );
       }
     }
@@ -244,48 +256,57 @@ class _TakePictureScreenState extends State<TakePictureScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final PlantService store = Provider.of<PlantService>(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Photo your plant')),
+      appBar: AppBar(title: Text(l10n.photoYourPlant)),
       // You must wait until the controller is initialized before displaying the
       // camera preview. Use a FutureBuilder to display a loading spinner until the
       // controller has finished initializing.
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: _plantNameController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
-                      labelText: 'Plant name',
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                      hintText: _suggestedPlantName,
-                      helperText: 'Leave blank to use this suggestion.',
-                      border: const OutlineInputBorder(),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _plantNameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: l10n.plantName,
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                        hintText: _suggestedPlantName,
+                        helperText: l10n.plantNameSuggestionHelp,
+                        helperMaxLines: 3,
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  RoomAssignmentField(
-                    roomId: _roomId,
-                    onChanged: (roomId) => setState(() => _roomId = roomId),
-                  ),
-                  const SizedBox(height: 16),
-                  _WateringIntervalControl(
-                    interval: _currentWateringIntervalSliderValue,
-                    onChanged: (value) => setState(
-                      () => _currentWateringIntervalSliderValue = value,
+                    const SizedBox(height: 12),
+                    RoomAssignmentField(
+                      roomId: _roomId,
+                      onChanged: (roomId) => setState(() => _roomId = roomId),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    _WateringIntervalControl(
+                      interval: _currentWateringIntervalSliderValue,
+                      onChanged: (value) => setState(
+                        () => _currentWateringIntervalSliderValue = value,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const Divider(height: 1),
-            Expanded(child: _buildCameraView(store)),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+            // Keep the preview in the remaining space, while permission help
+            // and large-text forms can extend the page and remain reachable.
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildCameraView(store),
+            ),
           ],
         ),
       ),
@@ -295,6 +316,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
               width: 70,
               child: FittedBox(
                 child: FloatingActionButton(
+                  tooltip: l10n.takePhoto,
                   onPressed: () => _captureAndAddPlant(store),
                   child: const Icon(Icons.camera_alt),
                 ),
@@ -314,13 +336,13 @@ class _TakePictureScreenState extends State<TakePictureScreen>
       case _CameraStatus.initializing:
         return const Center(child: CircularProgressIndicator());
       case _CameraStatus.capturing:
-        return const Center(
+        return Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 12),
-              Text('Taking picture...'),
+              Text(AppLocalizations.of(context)!.takingPicture),
             ],
           ),
         );
@@ -350,18 +372,17 @@ class _TakePictureScreenState extends State<TakePictureScreen>
           const SizedBox(height: 12),
           Text(
             canOpenSettings
-                ? 'Camera permission denied'
+                ? AppLocalizations.of(context)!.cameraPermissionDenied
                 : cameraPermissionNeeded
-                ? 'Camera permission required'
+                ? AppLocalizations.of(context)!.cameraPermissionRequired
                 : canRetry
-                ? 'Camera access unavailable'
-                : 'No camera available',
+                ? AppLocalizations.of(context)!.cameraUnavailable
+                : AppLocalizations.of(context)!.noCamera,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'The camera may be unavailable or permission may have been denied.\n'
-            'You can still add this plant without a photo.',
+          Text(
+            AppLocalizations.of(context)!.cameraUnavailableHelp,
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),
           ),
@@ -369,7 +390,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
           ElevatedButton.icon(
             onPressed: () => _addPlantWithoutPhoto(store),
             icon: const Icon(Icons.add),
-            label: const Text('Add without photo'),
+            label: Text(AppLocalizations.of(context)!.addWithoutPhoto),
           ),
           if (canRetry) ...[
             const SizedBox(height: 8),
@@ -377,7 +398,9 @@ class _TakePictureScreenState extends State<TakePictureScreen>
               onPressed: () =>
                   _initializeCamera(requestPermission: cameraPermissionNeeded),
               child: Text(
-                cameraPermissionNeeded ? 'Use camera' : 'Retry camera',
+                cameraPermissionNeeded
+                    ? AppLocalizations.of(context)!.useCamera
+                    : AppLocalizations.of(context)!.retryCamera,
               ),
             ),
           ],
@@ -385,7 +408,7 @@ class _TakePictureScreenState extends State<TakePictureScreen>
             const SizedBox(height: 8),
             TextButton(
               onPressed: _openCameraSettings,
-              child: const Text('Open app settings'),
+              child: Text(AppLocalizations.of(context)!.openAppSettings),
             ),
           ],
         ],
@@ -415,7 +438,7 @@ class _WateringIntervalControl extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Water every $interval ${interval == 1 ? 'day' : 'days'}',
+            AppLocalizations.of(context)!.waterEveryDays(interval),
             style: Theme.of(context).textTheme.titleSmall,
           ),
           Slider(
@@ -423,7 +446,9 @@ class _WateringIntervalControl extends StatelessWidget {
             min: 1,
             max: 20,
             divisions: 19,
-            label: '$interval ${interval == 1 ? 'day' : 'days'}',
+            label: AppLocalizations.of(context)!.dayCount(interval),
+            semanticFormatterCallback: (value) =>
+                AppLocalizations.of(context)!.dayCount(value.toInt()),
             onChanged: (value) => onChanged(value.toInt()),
           ),
         ],
@@ -440,8 +465,9 @@ class DisplayPictureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Display the Picture')),
+      appBar: AppBar(title: Text(l10n.displayPicture)),
       // The image is stored as a file on the device. Use the `Image.file`
       // constructor with the given path to display the image.
       body: Image.file(File(imagePath)),

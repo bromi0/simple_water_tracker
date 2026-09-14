@@ -6,6 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../rooms/room_data.dart';
 
+enum RoomNameFailure { empty, duplicate }
+
+/// Stable validation reason; presentation supplies the localized explanation.
+class RoomNameException extends ArgumentError {
+  RoomNameException(this.reason) : super(reason.name);
+
+  final RoomNameFailure reason;
+}
+
 /// Owns the persisted room catalogue. Plant membership remains plant data.
 class RoomService extends ChangeNotifier {
   RoomService() {
@@ -110,12 +119,12 @@ class RoomService extends ChangeNotifier {
 
   String _validateName(String name, {RoomData? excluding}) {
     final normalized = name.trim();
-    if (normalized.isEmpty) throw ArgumentError('A room name is required');
+    if (normalized.isEmpty) throw RoomNameException(RoomNameFailure.empty);
     final normalizedKey = normalized.toLowerCase();
     final duplicate = _rooms.any(
       (room) => room != excluding && room.name.toLowerCase() == normalizedKey,
     );
-    if (duplicate) throw ArgumentError('A room with that name already exists');
+    if (duplicate) throw RoomNameException(RoomNameFailure.duplicate);
     return normalized;
   }
 }

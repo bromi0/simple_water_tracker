@@ -21,6 +21,8 @@ class SettingsService {
   static const String dataKey = 'water_plant_appsettings_data_key';
   SettingsService();
   @JsonKey(includeFromJson: true, includeToJson: true)
+  String? _localeTag;
+  @JsonKey(includeFromJson: true, includeToJson: true)
   ThemeMode _themeMode = ThemeMode.system;
   @JsonKey(
     includeFromJson: true,
@@ -37,6 +39,14 @@ class SettingsService {
       WateringStatusPresentation.informative;
 
   Future<ThemeMode> themeMode() async => _themeMode;
+
+  /// Null follows the system; explicit choices use stable language tags.
+  Future<String?> localeTag() async => _localeTag;
+
+  Future<void> updateLocaleTag(String? tag) async {
+    _localeTag = tag;
+    await _saveSettingsData();
+  }
 
   Future<PlantListLayout> plantListLayout() async => _plantListLayout;
 

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../services/android_notification_permissions.dart';
 import '../services/notification_service.dart';
+import '../localization/app_localizations.dart';
+
+enum _NotificationError { updateReminders, readSettings, openSettings }
 
 /// Reads OS-owned state instead of storing an app notification preference.
 class NotificationSettings extends StatefulWidget {
@@ -28,7 +31,7 @@ class _NotificationSettingsState extends State<NotificationSettings>
     with WidgetsBindingObserver {
   NotificationPermissionState? _status;
   bool _busy = false;
-  String? _error;
+  _NotificationError? _error;
 
   @override
   void initState() {
@@ -56,19 +59,19 @@ class _NotificationSettingsState extends State<NotificationSettings>
       _busy = true;
       _error = null;
     });
-    String? error;
+    _NotificationError? error;
     NotificationPermissionState? status;
     try {
       if (request != null) await request();
       await widget.refreshPermission();
     } catch (_) {
-      error = 'Could not update reminders. Try again.';
+      error = _NotificationError.updateReminders;
     }
     // Show the actual permission even if scheduling failed after it was granted.
     try {
       status = await widget.readState();
     } catch (_) {
-      error = 'Could not read notification settings. Try again.';
+      error = _NotificationError.readSettings;
     }
     if (!mounted) return;
     setState(() {
@@ -84,13 +87,13 @@ class _NotificationSettingsState extends State<NotificationSettings>
       _busy = true;
       _error = null;
     });
-    String? error;
+    _NotificationError? error;
     try {
       if (!await widget.openSettings()) {
-        error = 'Could not open Android settings.';
+        error = _NotificationError.openSettings;
       }
     } catch (_) {
-      error = 'Could not open Android settings.';
+      error = _NotificationError.openSettings;
     }
     if (!mounted) return;
     setState(() {
@@ -101,31 +104,40 @@ class _NotificationSettingsState extends State<NotificationSettings>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final description = switch (_status) {
       NotificationPermissionState.enabled =>
-        'Allowed by Android for watering notifications.',
+        l10n.notificationsEnabledDescription,
       NotificationPermissionState.requestable =>
-        'Notifications are off. Allow reminders when your plants need water.',
+        l10n.notificationsRequestableDescription,
       NotificationPermissionState.settingsRequired =>
-        'Notifications are off. Enable them in Android settings.',
+        l10n.notificationsSettingsRequiredDescription,
       NotificationPermissionState.channelBlocked =>
-        'The watering notification category is off. Enable it in Android settings.',
+        l10n.notificationsChannelBlockedDescription,
       NotificationPermissionState.unsupported =>
-        'Notifications are currently available on Android only.',
-      null => 'Checking notification settings…',
+        l10n.notificationsUnsupportedDescription,
+      null => l10n.checkingNotificationSettings,
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Notifications', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          l10n.notifications,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         Text(description),
         if (_busy) const LinearProgressIndicator(),
         if (_error != null) ...[
-          Text(_error!),
+          Text(switch (_error!) {
+            _NotificationError.updateReminders => l10n.reminderUpdateFailed,
+            _NotificationError.readSettings =>
+              l10n.notificationSettingsReadFailed,
+            _NotificationError.openSettings => l10n.androidSettingsOpenFailed,
+          }),
           TextButton(
             onPressed: _busy ? null : _refresh,
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
         if (_status == NotificationPermissionState.requestable)
@@ -133,13 +145,13 @@ class _NotificationSettingsState extends State<NotificationSettings>
             onPressed: _busy
                 ? null
                 : () => _refresh(request: widget.requestPermission),
-            child: const Text('Allow notifications'),
+            child: Text(l10n.allowNotifications),
           ),
         if (_status != null &&
             _status != NotificationPermissionState.unsupported)
           OutlinedButton(
             onPressed: _busy ? null : _openSettings,
-            child: const Text('Open Android notification settings'),
+            child: Text(l10n.openNotificationSettings),
           ),
       ],
     );

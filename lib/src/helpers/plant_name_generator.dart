@@ -1,33 +1,20 @@
 import 'dart:math';
 
-final _adjectives = [
-  'Blooming',
-  'Lush',
-  'Evergreen',
-  'Thriving',
-  'Vibrant',
-  'Radiant',
-  'Flourishing',
-  'Verdant',
-  'Bountiful',
-  'Abundant',
-];
+import '../localization/app_localizations.dart';
 
-final _nouns = [
-  'Azalea',
-  'Fern',
-  'Maple',
-  'Orchid',
-  'Sunflower',
-  'Lily',
-  'Rose',
-  'Daisy',
-  'Poppy',
-  'Jasmine',
-];
-
-String generateRandomPlantName() {
-  final adjective = _adjectives[Random().nextInt(_adjectives.length)];
-  final noun = _nouns[Random().nextInt(_nouns.length)];
-  return '$adjective $noun';
+/// Select whole phrases so translations can preserve grammatical agreement.
+String generateRandomPlantName(AppLocalizations l10n, {Random? random}) {
+  final suggestions = [
+    l10n.plantNameSuggestion1,
+    l10n.plantNameSuggestion2,
+    l10n.plantNameSuggestion3,
+    l10n.plantNameSuggestion4,
+    l10n.plantNameSuggestion5,
+    l10n.plantNameSuggestion6,
+    l10n.plantNameSuggestion7,
+    l10n.plantNameSuggestion8,
+    l10n.plantNameSuggestion9,
+    l10n.plantNameSuggestion10,
+  ];
+  return suggestions[(random ?? Random()).nextInt(suggestions.length)];
 }

@@ -1,3 +1,4 @@
+import 'package:simple_water_tracker/src/localization/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,9 @@ void main() {
     var requests = 0;
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: NotificationSettings(
             refreshPermission: () async =>
@@ -47,6 +51,9 @@ void main() {
     var refreshes = 0;
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: NotificationSettings(
             refreshPermission: () async {
@@ -82,6 +89,9 @@ void main() {
       var state = NotificationPermissionState.requestable;
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: NotificationSettings(
               refreshPermission: () async => false,
@@ -115,6 +125,9 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: NotificationSettings(
               refreshPermission: () async => false,

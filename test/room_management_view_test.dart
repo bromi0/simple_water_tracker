@@ -27,6 +27,7 @@ void main() {
           ChangeNotifierProvider.value(value: rooms),
         ],
         child: MaterialApp(
+          locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const RoomManagementView(),

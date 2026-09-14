@@ -6,6 +6,7 @@ import '../settings/settings_controller.dart';
 import '../settings/settings_service.dart';
 import 'plant_tile.dart';
 import '../rooms/room_selection.dart';
+import '../localization/app_localizations.dart';
 
 /// Lazily renders the plant collection in the user's selected responsive view.
 class PlantList extends StatelessWidget {
@@ -101,6 +102,7 @@ class _EmptyPlantList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final textTheme = Theme.of(context).textTheme;
     return Center(
       child: Padding(
@@ -115,14 +117,14 @@ class _EmptyPlantList extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              roomName == null ? 'No plants yet' : 'No plants in $roomName',
+              roomName == null
+                  ? l10n.noPlantsYet
+                  : l10n.noPlantsInRoom(roomName!),
               style: textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
             Text(
-              roomName == null
-                  ? 'Add your first plant to start tracking its watering.'
-                  : 'Add a plant or move one here from its editor.',
+              roomName == null ? l10n.noPlantsHelp : l10n.noPlantsInRoomHelp,
               textAlign: TextAlign.center,
               style: textTheme.bodyLarge,
             ),
@@ -130,7 +132,7 @@ class _EmptyPlantList extends StatelessWidget {
             FilledButton.icon(
               onPressed: onAddPlant,
               icon: const Icon(Icons.add),
-              label: const Text('Add plant'),
+              label: Text(l10n.addPlant),
             ),
           ],
         ),
