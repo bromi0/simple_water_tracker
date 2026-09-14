@@ -7,6 +7,18 @@
   "@languageEnglish": {"description": "English language name, always written in English."},
   "languageRussian": "Русский",
   "@languageRussian": {"description": "Russian language name, always written in Russian."},
+  "wateringNotificationTitle": "Water {plantName}",
+  "@wateringNotificationTitle": {"description": "Scheduled watering reminder title; plantName is user-owned text.", "placeholders": {"plantName": {"type": "String"}}},
+  "wateringNotificationBody": "Your plant needs water.",
+  "@wateringNotificationBody": {"description": "Scheduled watering reminder body."},
+  "testNotificationTitle": "Watering reminder test",
+  "@testNotificationTitle": {"description": "Title of the in-app notification test."},
+  "testNotificationBody": "Notifications are working.",
+  "@testNotificationBody": {"description": "Body of the in-app notification test."},
+  "notificationChannelName": "Watering reminders",
+  "@notificationChannelName": {"description": "Android notification channel name."},
+  "notificationChannelDescription": "Reminders to water your plants.",
+  "@notificationChannelDescription": {"description": "Android notification channel description."},
   "appTitle": "Simply Water Plant",
   "@appTitle": {
     "description": "Application brand name; keep Simply Water Plant in every locale."

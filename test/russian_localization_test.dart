@@ -136,18 +136,21 @@ void main() {
     expect(l10n.plantNameSuggestion2, 'Пышный папоротник');
   });
 
-  testWidgets('system locale changes preserve the editor and its draft', (
+  testWidgets('locale changes preserve the editor and its draft', (
     tester,
   ) async {
-    russianDevice(tester);
     final plant = PlantData(name: 'My Fern', waterLevel: 80);
     await plants.add(plant);
-    await tester.pumpWidget(app(PlantEditorScreen(plant: plant)));
+    await tester.pumpWidget(
+      app(PlantEditorScreen(plant: plant), locale: const Locale('ru')),
+    );
     await tester.pumpAndSettle();
-    expect(find.text('Редактирование растения'), findsOneWidget);
+    expect(find.text('Редактирование'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Мой папоротник');
 
-    tester.platformDispatcher.localesTestValue = [const Locale('en')];
+    await tester.pumpWidget(
+      app(PlantEditorScreen(plant: plant), locale: const Locale('en')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Edit plant'), findsOneWidget);
     expect(find.text('Мой папоротник'), findsOneWidget);

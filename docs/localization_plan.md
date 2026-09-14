@@ -50,9 +50,13 @@ No commits or publication without an explicit request.
 - Device review pending. Use Settings → Language to select Russian directly
   in the app. Check camera capture/preview,
   room creation with keyboard visible, both plant layouts, and the schedule.
-- Milestone 3 has not started: notification delivery copy/channel metadata still
-  use English. Existing demo plant names and legacy `Unknown` names remain
-  unchanged; they are not automatically rewritten as translations.
+- Milestone 3 completed: reminder and test notification titles/bodies plus
+  Android channel metadata use generated messages. Foreground scheduling reads
+  the active Settings language; headless package-replacement recovery reads the
+  persisted override. Existing OS-scheduled alerts retain their rendered copy
+  until normal reminder reconciliation replaces them. Existing demo plant names
+  and legacy `Unknown` names remain unchanged; they are not automatically
+  rewritten as translations.
 - Added a simple Settings language selector at the user's request. The choice
   switches the UI immediately and persists as a nullable language tag in the
   existing settings JSON. Focused persistence/switching tests passed; settings

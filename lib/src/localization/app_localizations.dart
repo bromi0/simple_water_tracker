@@ -122,6 +122,42 @@ abstract class AppLocalizations {
   /// **'Русский'**
   String get languageRussian;
 
+  /// Scheduled watering reminder title; plantName is user-owned text.
+  ///
+  /// In en, this message translates to:
+  /// **'Water {plantName}'**
+  String wateringNotificationTitle(String plantName);
+
+  /// Scheduled watering reminder body.
+  ///
+  /// In en, this message translates to:
+  /// **'Your plant needs water.'**
+  String get wateringNotificationBody;
+
+  /// Title of the in-app notification test.
+  ///
+  /// In en, this message translates to:
+  /// **'Watering reminder test'**
+  String get testNotificationTitle;
+
+  /// Body of the in-app notification test.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are working.'**
+  String get testNotificationBody;
+
+  /// Android notification channel name.
+  ///
+  /// In en, this message translates to:
+  /// **'Watering reminders'**
+  String get notificationChannelName;
+
+  /// Android notification channel description.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders to water your plants.'**
+  String get notificationChannelDescription;
+
   /// Application brand name; keep Simply Water Plant in every locale.
   ///
   /// In en, this message translates to:

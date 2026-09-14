@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'notification_service.dart';
+import '../localization/app_localizations.dart';
+import '../localization/app_localizations_loader.dart';
 import '../observability/app_observability.dart';
 import 'plant_service.dart';
 import 'reminder_delivery_policy.dart';
@@ -16,7 +18,8 @@ class ReminderCoordinator {
     Future<void> Function()? initializeNotifications,
     Future<bool> Function()? requestPermissions,
     Future<bool> Function()? readPermissions,
-    Future<bool> Function()? scheduleTestNotification,
+    Future<bool> Function(AppLocalizations)? scheduleTestNotification,
+    Future<AppLocalizations> Function()? loadLocalizations,
     Future<void> Function(String, List<WateringNotification>)?
     schedulePlantNotifications,
     Future<void> Function(String, List<WateringNotification>)?
@@ -29,6 +32,7 @@ class ReminderCoordinator {
        _scheduleTestNotification =
            scheduleTestNotification ??
            NotificationService.scheduleTestNotification,
+       _loadLocalizations = loadLocalizations ?? loadAppLocalizations,
        _initializeNotifications =
            initializeNotifications ??
            NotificationService.initializeNotifications,
@@ -55,7 +59,8 @@ class ReminderCoordinator {
   final Future<bool> Function() _readPermissions;
   final Future<bool> Function() _requestPermissions;
   bool _permissionGranted = false;
-  final Future<bool> Function() _scheduleTestNotification;
+  final Future<bool> Function(AppLocalizations) _scheduleTestNotification;
+  final Future<AppLocalizations> Function() _loadLocalizations;
   Future<void>? _start;
   Future<void> _pending = Future.value();
   bool _disposed = false;
@@ -149,7 +154,7 @@ class ReminderCoordinator {
 
   Future<bool> scheduleTestNotification() async {
     if (!await requestNotificationsPermission()) return false;
-    return _scheduleTestNotification();
+    return _scheduleTestNotification(await _loadLocalizations());
   }
 
   Future<void> _syncAllPlants() async {
@@ -188,21 +193,26 @@ class ReminderCoordinator {
       reminderTime: reminder.scheduledDateTime,
       now: DateTime.now().toUtc(),
     );
+    final l10n = await _loadLocalizations();
     final notifications = [
       WateringNotification(
         plantId: plantId,
         slot: WateringNotificationSlot.initial,
         deliveryTime: initialDeliveryTime,
-        title: reminder.plant.name,
-        body: '${reminder.plant.name}: Water me please...',
+        title: l10n.wateringNotificationTitle(reminder.plant.name),
+        body: l10n.wateringNotificationBody,
+        channelName: l10n.notificationChannelName,
+        channelDescription: l10n.notificationChannelDescription,
         timeoutAfter: policy.retryDelay,
       ),
       WateringNotification(
         plantId: plantId,
         slot: WateringNotificationSlot.retry,
         deliveryTime: policy.retryDeliveryTime(initialDeliveryTime),
-        title: reminder.plant.name,
-        body: '${reminder.plant.name}: Water me please...',
+        title: l10n.wateringNotificationTitle(reminder.plant.name),
+        body: l10n.wateringNotificationBody,
+        channelName: l10n.notificationChannelName,
+        channelDescription: l10n.notificationChannelDescription,
       ),
     ];
     if (replaceExisting) {

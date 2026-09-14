@@ -21,6 +21,26 @@ class AppLocalizationsRu extends AppLocalizations {
   String get languageRussian => 'Русский';
 
   @override
+  String wateringNotificationTitle(String plantName) {
+    return 'Полейте: $plantName';
+  }
+
+  @override
+  String get wateringNotificationBody => 'Растению нужен полив.';
+
+  @override
+  String get testNotificationTitle => 'Проверка напоминаний о поливе';
+
+  @override
+  String get testNotificationBody => 'Уведомления работают.';
+
+  @override
+  String get notificationChannelName => 'Напоминания о поливе';
+
+  @override
+  String get notificationChannelDescription => 'Напоминания поливать растения.';
+
+  @override
   String get appTitle => 'Simply Water Plant';
 
   @override
@@ -78,7 +98,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get rooms => 'Комнаты';
 
   @override
-  String get addPlant => 'Добавить растение';
+  String get addPlant => 'Добавить';
 
   @override
   String get plants => 'Растения';
@@ -131,7 +151,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get delete => 'Удалить';
 
   @override
-  String get editPlant => 'Редактирование растения';
+  String get editPlant => 'Редактирование';
 
   @override
   String get deletePlant => 'Удалить растение';

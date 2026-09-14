@@ -21,6 +21,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageRussian => 'Русский';
 
   @override
+  String wateringNotificationTitle(String plantName) {
+    return 'Water $plantName';
+  }
+
+  @override
+  String get wateringNotificationBody => 'Your plant needs water.';
+
+  @override
+  String get testNotificationTitle => 'Watering reminder test';
+
+  @override
+  String get testNotificationBody => 'Notifications are working.';
+
+  @override
+  String get notificationChannelName => 'Watering reminders';
+
+  @override
+  String get notificationChannelDescription =>
+      'Reminders to water your plants.';
+
+  @override
   String get appTitle => 'Simply Water Plant';
 
   @override

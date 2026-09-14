@@ -12,6 +12,7 @@ import 'services/plant_service.dart';
 import 'services/plant_photo_picker.dart';
 import 'services/reminder_coordinator.dart';
 import 'services/room_service.dart';
+import 'localization/app_localizations_loader.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
@@ -38,7 +39,11 @@ class _SimplyWaterPlantAppState extends State<SimplyWaterPlantApp> {
     super.initState();
     _plantService = PlantService();
     _roomService = RoomService();
-    _reminderCoordinator = ReminderCoordinator(plantService: _plantService);
+    _reminderCoordinator = ReminderCoordinator(
+      plantService: _plantService,
+      loadLocalizations: () =>
+          loadAppLocalizations(locale: widget.settingsController.locale),
+    );
     _startReminderCoordinator();
     _recoverPickedPhoto();
   }

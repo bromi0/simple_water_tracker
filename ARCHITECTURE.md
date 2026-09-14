@@ -114,6 +114,13 @@ dates use `intl` and time display respects the device's 12/24-hour preference.
 Room validation exposes stable failure reasons, translated by its UI.
 Random plant names are complete localized phrases selected once per creation
 draft. Saved plant and room names are never translated or renamed.
+
+Notification rendering receives generated messages from `ReminderCoordinator`.
+Foreground scheduling follows the active app language; headless
+package-replacement recovery reads the persisted language override. Android
+channel metadata is updated with the rendered language when a notification is
+scheduled. Existing OS-scheduled alerts retain their previously rendered copy
+until reminder reconciliation replaces them.
 See [localization milestones](docs/localization_plan.md) for the Russian and
 notification rollout and device-review checkpoints.
 
