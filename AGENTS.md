@@ -33,6 +33,12 @@ cross-cutting changes. Read its linked investigation notes only when relevant.
 ## Validation
 
 Choose checks by the changed area; do not repeat broad checks after every edit.
+Keep command output and agent context proportionate too: run focused tests while
+iterating, and reserve a full suite for a completed milestone, before a commit,
+or when a cross-cutting change makes focused coverage insufficient. Summarize
+successful test counts rather than replaying full output. A full run is useful
+as a release gate, but repeating it for each small follow-up consumes time and
+context without adding meaningful confidence.
 
 - Documentation-only: check references and review the diff.
 - Small/local edit: run directly affected checks or tests, for example
